@@ -2,17 +2,23 @@
 
 #ifdef TEST_DEF
 
-void print() {
-    printf("Hello world!\n");
-    printf("Hello world!\n");
-}
-
 void printKey(uc *key, int length) {
     int i, j;
     for (i = 0; i < length; ++i) {
         printf("w(%d): ", i);
         for (j = 0; j < 4; ++j) {
             printf("%x%x", key[i*4+j] >> 4, key[i*4+j] & 0x0f);
+        }
+        printf("\n");
+    }
+}
+
+void printBlock(uc *block) {
+    int i, j;
+    printf("Print block:\n");
+    for (i = 0; i < 4; ++i) {
+        for (j = 0; j < 4; ++j) {
+            printf("%x%x ", block[i*4+j] >> 4, block[i*4+j] & 0x0f);
         }
         printf("\n");
     }
@@ -84,6 +90,10 @@ uc getSbox(uc element) {
     return Sbox[element];
 }
 
+uc getrSbox(uc element) {
+    return rSbox[element];
+}
+
 uc getRcon(int rowNum) {
     return Rcon[(rowNum)/4];
 }
@@ -95,35 +105,187 @@ void transformRow(uc *row, int rowNum, uc *transformedRow) {
     transformedRow[3] = getSbox(row[0]);
 }
 
-// TODO MEMORY CHECK
-uc *expandKey(uc *key) {
-    uc *expandedKey = malloc(176*sizeof(uc));
-    int i, j;
-    for (i = 0; i < 4; ++i) {
-        for (j = 0; j < 4; ++j) {
+void expandKey(uc *key, uc *expandedKey) {
+    for (int j = 0; j < 4; ++j) {
+        for (int i = 0; i < 4; ++i) {
             expandedKey[i*4 + j] = key[i*4 + j];
         }
     }
-    for (; i < 44; ++i) {
+    for (int i = 4; i < 44; ++i) {
         if (i % 4 == 0) {
             uc *row = expandedKey + (i - 1)*4;
             uc transformedRow[4];
             transformRow(row, i, transformedRow);
-            for (j = 0; j < 4; ++j) {
+            for (int j = 0; j < 4; ++j) {
                 expandedKey[i*4 + j] = expandedKey[(i-4)*4 + j] ^ transformedRow[j];
             }
         } else {
-            for (j = 0; j < 4; ++j) {
+            for (int j = 0; j < 4; ++j) {
                 expandedKey[i*4 + j] = expandedKey[(i-4)*4 + j] ^ expandedKey[(i-1)*4 + j];
             }
         }
     }
-    return expandedKey;
+}
+
+void getRoundKeys(uc *key, uc roundKeys[11][16]) {
+    uc expandedKey[176];
+    expandKey(key, expandedKey);
+    for (int k = 0; k < 11; ++k) {
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                roundKeys[k][4*j+i] = expandedKey[k*16+4*i+j];
+            }
+        }
+    }
+}
+
+void byteSub(uc *state) {
+    for (int i = 0; i < 16; ++i) {
+        state[i] = getSbox(state[i]);
+    }
+}
+
+void shift(uc *row, int numRow) {
+    for (int i = 0; i < numRow; ++i) {
+        uc temp = row[0];
+        for (int j = 0; j < 4; ++j) {
+            row[j] = row[j+1];
+        }
+        row[3] = temp;
+    }
+}
+
+void shiftRow(uc *state) {
+    for (int i = 0; i < 4; i++)
+        shift(state+i*4, i);
+}
+
+uc galoisFieldMult(uc a, uc b){
+    uc r = 0, xor = 0;
+    while(b) {
+        if (b & 0x01)
+            r ^= a;
+        xor = a & 0x80;
+        a <<= 1;
+        if (xor)
+            a ^= 0x1b;
+        b >>= 1;
+    }
+    return r;
+}
+
+void mixColumn(uc *state) {
+    uc column[4];
+    uc coef[4][4] = { {2, 3, 1, 1},
+                      {1, 2, 3, 1},
+                      {1, 1, 2, 3},
+                      {3, 1, 1, 2}};
+    for (int j = 0; j < 4; ++j) {
+        for (int i = 0; i < 4; ++i)
+            column[i] = state[i*4+j];
+        for (int i = 0; i < 4; ++i) {
+            state[i*4+j] = 0;
+            for (int k = 0; k < 4; ++k)
+                state[i*4+j] ^= galoisFieldMult(column[k], coef[i][k]);
+        }
+    }
+}
+
+void addRoundKey(uc *state, uc *roundKey) {
+    for (int i = 0; i < 16; ++i) {
+        state[i] ^= roundKey[i];
+    }
+}
+
+void applyRound(uc *state, uc *roundKey) {
+    byteSub(state);
+    shiftRow(state);
+    mixColumn(state);
+    addRoundKey(state, roundKey);
+}
+
+void encryptBlock(uc *state, uc *key) {
+    uc roundKeys[11][16];
+    getRoundKeys(key, roundKeys);
+    addRoundKey(state, roundKeys[0]);
+    for (int i = 1; i <= 9; ++i)
+        applyRound(state, roundKeys[i]);
+    byteSub(state);
+    shiftRow(state);
+    addRoundKey(state, roundKeys[10]);
+}
+
+void invByteSub(uc *state) {
+    for (int i = 0; i < 16; ++i) {
+        state[i] = getrSbox(state[i]);
+    }
+}
+
+void invShift(uc *row, int numRow) {
+    for (int i = 0; i < numRow; ++i) {
+        uc temp = row[3];
+        for (int j = 3; j > 0; --j) {
+            row[j] = row[j-1];
+        }
+        row[0] = temp;
+    }
+}
+
+void invShiftRow(uc *state) {
+    for (int i = 0; i < 4; i++)
+        invShift(state+i*4, i);
+}
+
+void invMixColumn(uc *state) {
+    uc column[4];
+    uc coef[4][4] = { {14, 11, 13,  9},
+                      { 9, 14, 11, 13},
+                      {13,  9, 14, 11},
+                      {11, 13,  9, 14}};
+    for (int j = 0; j < 4; ++j) {
+        for (int i = 0; i < 4; ++i)
+            column[i] = state[i*4+j];
+        for (int i = 0; i < 4; ++i) {
+            state[i*4+j] = 0;
+            for (int k = 0; k < 4; ++k)
+                state[i*4+j] ^= galoisFieldMult(column[k], coef[i][k]);
+        }
+    }
+}
+
+void invAddRoundKey(uc *state, uc *roundKey) {
+    invMixColumn(roundKey);
+    for (int i = 0; i < 16; ++i) {
+        state[i] ^= roundKey[i];
+    }
+}
+
+void applyInvRound(uc *state, uc *roundKey) {
+    invMixColumn(state);
+    invAddRoundKey(state, roundKey);
+    invByteSub(state);
+    invShiftRow(state);
+}
+
+void decryptBlock(uc *state, uc *key) {
+    uc roundKeys[11][16];
+    getRoundKeys(key, roundKeys);
+    addRoundKey(state, roundKeys[10]);
+    invByteSub(state);
+    invShiftRow(state);
+    for (int i = 9; i >= 1; --i)
+        applyInvRound(state, roundKeys[i]);
+    addRoundKey(state, roundKeys[0]);
 }
 
 int main() {
     uc key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
-    uc *expandedKey = expandKey(key);
-    printKey(expandedKey, 44);
+    uc state[] = {0x32, 0x88, 0x31, 0xe0, 0x43, 0x5a, 0x31, 0x37, 0xf6, 0x30, 0x98, 0x07, 0xa8, 0x8d, 0xa2, 0x34};
+
+    encryptBlock(state, key);
+    printBlock(state);
+
+    decryptBlock(state, key);
+    printBlock(state);
 }
 
