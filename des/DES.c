@@ -3,6 +3,8 @@
 #include <string.h>
 #include "DES.h"
 
+#define ALLOC_CHECK(p)  if (!(p)) printf("Neuspesna alokacija\n"), exit(1)
+#define FILE_CHECK(p)   if (!(p)) printf("Neuspesno otvaranje fajla\n"), exit(2)
 
 void IP(uc* input, uc *output)
 {
@@ -91,19 +93,12 @@ uc** keyGenerate(uc* key)
 
     int leftShifts[] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1};
     int i, j;
-    uc *output = calloc(8, sizeof(uc));
-    if(!output)
-    {
-        printf("Memory allocation unsuccessful.\n");
-        exit(1);
-    }
+    uc output[8];
+    memset(output, 0, 8);
+    ALLOC_CHECK(output);
 
     subKeys = malloc(16*sizeof(uc*));
-    if(!subKeys)
-    {
-        printf("Memory allocation unsuccessful.\n");
-        exit(1);
-    }
+    ALLOC_CHECK(subKeys);
 
     int PC1[] = {57, 49,  41, 33,  25,  17,  9,
                  1, 58,  50, 42,  34,  26, 18,
@@ -122,20 +117,9 @@ uc** keyGenerate(uc* key)
                 44, 49, 39, 56, 34, 53,
                 46, 42, 50, 36, 29, 32};
 
-    uc *C, *D;
-    C = calloc(4, sizeof(uc));
-    if(!C)
-    {
-        printf("Memory allocation unsuccessful.\n");
-        exit(1);
-    }
-    D = calloc(4, sizeof(uc));
-    if(!D)
-    {
-        printf("Memory allocation unsuccessful.\n");
-        exit(1);
-    }
-
+    uc C[4], D[4];
+    memset(C, 0, 4);
+    memset(D, 0, 4);
     for(i=0;i<56;i++)
         output[i/8] |= (((0x80 >> ((PC1[i] - 1)%8)) & key[(PC1[i] - 1)/8]) << ((PC1[i] - 1)%8)) >> i%8;
 
@@ -146,11 +130,7 @@ uc** keyGenerate(uc* key)
         leftRotate(C, leftShifts[i]);
         leftRotate(D, leftShifts[i]);
         subKeys[i] = calloc(6, sizeof(uc));
-        if(!subKeys[i])
-        {
-            printf("Memory allocation unsuccessful.\n");
-            exit(1);
-        }
+        ALLOC_CHECK(subKeys[i]);
         for(j=0;j<48;j++)
         {
             if(PC2[j] < 29)
@@ -159,6 +139,7 @@ uc** keyGenerate(uc* key)
                 subKeys[i][j/8] |= (((0x80 >> ((PC2[j] - 29)%8)) & D[(PC2[j] - 29)/8]) << ((PC2[j] - 29)%8)) >> j%8;
         }
     }
+
     return subKeys;
 }
 
@@ -220,7 +201,8 @@ uc *shortenMsg(uc *expandedMsg)
                  2,  1, 14,  7,  4, 10,  8, 13, 15, 12,  9,  0,  3,  5,  6, 11};
 
     int row, column;
-    uc shortenedMsg[4] = {};
+    uc shortenedMsg[4];
+	memset(shortenedMsg, 0, 4);
 
     row = column = 0;
     row |= ((expandedMsg[0] & 0x80) >> 6);
@@ -304,7 +286,8 @@ void f(uc *R, uc *K, uc *output)
                 19, 13, 30,  6,
                 22, 11,  4, 25};
     int i;
-    uc expandedMsg[6] = {}, *shortenedMsg;
+    uc expandedMsg[6], *shortenedMsg;
+	memset(expandedMsg, 0, 6);
 
     for(i=0;i<48;i++)
         expandedMsg[i/8] |= (((0x80 >> (E[i]-1)%8) & R[(E[i]-1)/8]) << (E[i]-1)%8) >> i%8;
@@ -325,7 +308,15 @@ void f(uc *R, uc *K, uc *output)
 }
 
 
-void encodeBlock(uc *input, uc *key, int mode, uc *output)
+void freeKeys(uc **keys)
+{
+    int i;
+    for(i=0;i<16;i++)
+        free(keys[i]);
+    free(keys);
+}
+
+void desEncodeBlock(uc *input, uc *key, int mode, uc *output)
 {
     uc R[4], L[4], tempL[4], tempR[4];
     uc **subKeys, pInput[8];
@@ -364,29 +355,62 @@ void encodeBlock(uc *input, uc *key, int mode, uc *output)
     }
 
     reverseIP(pInput, output);
+    freeKeys(subKeys);
+}
+
+void desEncodeFile(char *name, uc* key, int mode)
+{
+    FILE *in, *out;
+    char *oname = malloc(strlen(name) + 2);
+    uc msg[8], output[8], c;
+    int i = 0;
+
+    in = fopen(name, "r");
+    FILE_CHECK(in);
+
+    strcpy(oname, name);
+    oname[strlen(name)-4] = '\0';
+    strcat(oname, "_c.txt");
+
+    out = fopen(oname, "w");
+    FILE_CHECK(out);
+
+    while((c = getc(in)) != 0xFF)
+    {
+        msg[i++] = c;
+        if(i == 8)
+        {
+            desEncodeBlock(msg, key, mode, output);
+            for(i=0;i<8;i++)
+                fputc(output[i], out);
+            i=0;
+        }
+    }
+    if(i)
+    {
+        for(;i<8;i++)
+            msg[i] = 0;
+        desEncodeBlock(msg, key, mode, output);
+        for(i=0;i<8;i++)
+                fputc(output[i], out);
+    }
+
+    free(oname);
+    fclose(in);
+    fclose(out);
 }
 
 
 int main()
 {
     uc R[4], L[4];
-    uc msg[8] = {};
-    msg[7] = 0x54;
-    uc key[] = {0x3B, 0x38, 0x98, 0x37, 0x15, 0x20, 0xF7, 0x5E};
+    uc msg[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+    uc key[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
     uc output[8];
 
-    printf("Input: \n");
-    charToBin(msg,8);
 
-    encodeBlock(msg, key, 0, output);
-
-    printf("Enciphered: \n");
-    charToBin(output, 8);
-
-    encodeBlock(output, key, 1, msg);
-
-    printf("Deciphered: \n");
-    charToBin(msg, 8);
+    desEncodeFile("test.txt", key, 0);
+    desEncodeFile("test_c.txt", key, 1);
 
     return 0;
 }
