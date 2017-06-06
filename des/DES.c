@@ -1,10 +1,30 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include "DES.h"
 
-#define ALLOC_CHECK(p)  if (!(p)) printf("Neuspesna alokacija\n"), exit(1)
-#define FILE_CHECK(p)   if (!(p)) printf("Neuspesno otvaranje fajla\n"), exit(2)
+uc bitPairity(uc k)
+{
+    int s = 0, i;
+
+    for(i = 0;i<8;i++)
+        s += (k >> i) & 0x01;
+
+    if(s%2)
+        return 0x00;
+    else
+        return 0x01;
+}
+
+void expandKey(uc* key, uc *ekey)
+{
+    int i;
+    memset(ekey, 0, sizeof(ekey));
+
+    for(i=0;i<8;i++)
+    {
+        ekey[i] = (key[i-1] & (0xFF >> (8-i))) << (8-i);
+        ekey[i] |= (key[i] & (0xFF << (i+1))) >> i;
+        ekey[i] |= bitPairity(ekey[i]);
+    }
+}
 
 void IP(uc* input, uc *output)
 {
@@ -307,7 +327,6 @@ void f(uc *R, uc *K, uc *output)
 
 }
 
-
 void freeKeys(uc **keys)
 {
     int i;
@@ -319,10 +338,11 @@ void freeKeys(uc **keys)
 void desEncodeBlock(uc *input, uc *key, int mode, uc *output)
 {
     uc R[4], L[4], tempL[4], tempR[4];
-    uc **subKeys, pInput[8];
+    uc **subKeys, pInput[8], ekey[8];
     int i, j, k;
 
-    subKeys = keyGenerate(key);
+    expandKey(key, ekey);
+    subKeys = keyGenerate(ekey);
     IP(input, pInput);
 
     splitMsg(pInput, L, R);
@@ -392,7 +412,7 @@ void desEncodeFile(char *name, uc* key, int mode)
             msg[i] = 0;
         desEncodeBlock(msg, key, mode, output);
         for(i=0;i<8;i++)
-                fputc(output[i], out);
+            fputc(output[i], out);
     }
 
     free(oname);
@@ -400,17 +420,75 @@ void desEncodeFile(char *name, uc* key, int mode)
     fclose(out);
 }
 
+void tdesEncodeBlock(uc *input, uc *key1, uc *key2, uc *key3, int mode, uc *output)
+{
+   uc *Keys[3] = {key1, key2, key3};
+   int i, k;
+   for(i=0;i<3;i++)
+   {
+        if(mode)
+            k = i;
+        else
+            k = 2 - i;
+        desEncodeBlock(input, Keys[k], mode, output);
+        mode = 1 - mode;
+        input = output;
+   }
+}
+
+void tdesEncodeFile(char *name, uc* key1, uc* key2, uc* key3, int mode)
+{
+    FILE *in, *out;
+    char *oname = malloc(strlen(name) + 2);
+    uc msg[8], output[8], c;
+    int i = 0;
+
+    in = fopen(name, "r");
+    FILE_CHECK(in);
+
+    strcpy(oname, name);
+    oname[strlen(name)-4] = '\0';
+    strcat(oname, "_c.txt");
+
+    out = fopen(oname, "w");
+    FILE_CHECK(out);
+
+    while((c = getc(in)) != 0xFF)
+    {
+        msg[i++] = c;
+        if(i == 8)
+        {
+            tdesEncodeBlock(msg, key1, key2, key3, mode, output);
+            for(i=0;i<8;i++)
+                fputc(output[i], out);
+            i=0;
+        }
+    }
+    if(i)
+    {
+        for(;i<8;i++)
+            msg[i] = 0;
+        tdesEncodeBlock(msg, key1, key2, key3, mode, output);
+        for(i=0;i<8;i++)
+            fputc(output[i], out);
+    }
+
+    free(oname);
+    fclose(in);
+    fclose(out);
+}
 
 int main()
 {
     uc R[4], L[4];
     uc msg[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
-    uc key[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+    uc key1[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
+    uc key2[] = {'t', 'r', '3', '6', '6', 's', 'r'};
+    uc key3[] = {'r', 'q', '1', 'm', 's', 'z', 'y'};
     uc output[8];
 
-
-    desEncodeFile("test.txt", key, 0);
-    desEncodeFile("test_c.txt", key, 1);
+    tdesEncodeFile("test.txt", key1, key2, key3, 0);
+    tdesEncodeFile("test.txt", key1, key2, key3, 1);
 
     return 0;
 }
