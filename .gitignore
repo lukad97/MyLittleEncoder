@@ -3,6 +3,7 @@
 *.vcxproj.filters
 *.o
 *.exe
+*.pdf
 
 # User-specific files
 *.suo

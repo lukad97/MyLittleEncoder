@@ -61,6 +61,8 @@ FileHeader headerCreate(FILE *pFile, const char *pName)
 	header.len = 0;
 	strcpy(header.fileName, pName);
 
+	memset(header.pad, 0, sizeof(header.pad));
+
 	while ((bytesRead = fread(&memBlock, sizeof(uint8_t), BATCH_READ_MAX, pFile)) > 0)
 	{
 		header.len += bytesRead;

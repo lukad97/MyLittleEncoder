@@ -10,8 +10,7 @@ typedef struct
 {
 	char fileName[FILENAME_LEN_MAX];
 	uint64_t len;
-	uint8_t crc[4];
-	uint32_t pad;
+	unsigned char crc[4], pad[4];
 } FileHeader;
 
 
