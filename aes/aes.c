@@ -1,4 +1,7 @@
 #include "aes.h"
+#include "../des/DES/FILEHEADER.h"
+
+#define BLOCK_SIZE 16
 
 #ifdef TEST_DEF
 
@@ -278,7 +281,113 @@ void decryptBlock(uc *state, uc *key) {
     addRoundKey(state, roundKeys[0]);
 }
 
-int main() {
+void encryptFileECB(char *name, uc* key)
+{
+	FILE *in, *out;
+	FileHeader head;
+	char *oname = malloc(strlen(name) + 3);
+	uc msg[BLOCK_SIZE], **subKeys, ekey[8];
+	int i = 0;
+    /*
+	expandKey(key, ekey);
+	subKeys = keyGenerate(ekey);
+    */
+	in = fopen(name, "rb");
+	FILE_CHECK(in);
+
+	strcpy(oname, name);
+	oname[strlen(name) - 4] = '\0';
+	strcat(oname, "_c.txt");
+
+	out = fopen(oname, "wb");
+	FILE_CHECK(out);
+	free(oname);
+    /*
+	head = headerCreate(in, name);
+
+	for (i = 0; i < 32; i++)
+	{
+		memcpy(msg, head.fileName + 8 * i, 8 * sizeof(uc));
+		desEncodeBlock(msg, subKeys, 0, output);
+		fwrite(output, sizeof(uc), 8, out);
+	}
+
+	memcpy(msg, &head.len, sizeof(msg));
+	desEncodeBlock(msg, subKeys, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
+
+	memcpy(msg, head.crc, sizeof(head.crc));
+	memcpy(msg + 4, head.pad, sizeof(head.pad));
+	desEncodeBlock(msg, subKeys, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
+    */
+    while ((i = fread(msg, sizeof(uc), BLOCK_SIZE, in)))
+    {
+        for (; i<BLOCK_SIZE; i++)
+            msg[i] = 0;
+        encryptBlock(msg, key);
+        fwrite(msg, sizeof(uc), BLOCK_SIZE, out);
+    }
+
+	// freeKeys(subKeys);
+	fclose(in);
+	fclose(out);
+	return;
+}
+
+void decryptFileECB(char *name, uc* key)
+{
+	FILE *in, *out;
+	// FileHeader head;
+	char *oname = malloc(strlen(name) + 3);
+	uc msg[BLOCK_SIZE], c, **subKeys, ekey[8];
+	int i = 0;
+    /*
+	expandKey(key, ekey);
+	subKeys = keyGenerate(ekey);
+    */
+	in = fopen(name, "rb");
+	FILE_CHECK(in);
+    /*
+	for (i = 0; i < 32; i++)
+	{
+		fread(output, sizeof(uc), 8, in);
+		desEncodeBlock(output, subKeys, 1, msg);
+		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
+	}
+
+	fread(output, sizeof(uc), 8, in);
+	desEncodeBlock(output, subKeys, 1, msg);
+	memcpy(&head.len, msg, sizeof(msg));
+
+	fread(output, sizeof(uc), 8, in);
+	desEncodeBlock(output, subKeys, 1, msg);
+	memcpy(head.crc, msg, sizeof(head.crc));
+	memcpy(head.pad, msg + 4, sizeof(head.pad));
+    */
+	strcpy(oname, name);
+	oname[strlen(name) - 4] = '\0';
+	strcat(oname, "_c.txt");
+
+	out = fopen(oname, "wb");
+	FILE_CHECK(out);
+	free(oname);
+
+	while ((i = fread(msg, sizeof(uc), BLOCK_SIZE, in)))
+    {
+        decryptBlock(msg, key);
+        fwrite(msg, sizeof(uc), BLOCK_SIZE, out);
+    }
+
+	// freeKeys(subKeys);
+	fclose(in);
+	fclose(out);
+	// return head;
+}
+
+
+#ifdef TEST_DEF
+void test1() {
     uc key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
     uc state[] = {0x32, 0x88, 0x31, 0xe0, 0x43, 0x5a, 0x31, 0x37, 0xf6, 0x30, 0x98, 0x07, 0xa8, 0x8d, 0xa2, 0x34};
 
@@ -287,5 +396,14 @@ int main() {
 
     decryptBlock(state, key);
     printBlock(state);
+}
+#endif // TEST_DEF
+
+int main() {
+    uc key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
+    char name[10] = "test.txt";
+    encryptFileECB(name, key);
+    char name2[15] = "test_c.txt";
+    decryptFileECB(name2, key);
 }
 
