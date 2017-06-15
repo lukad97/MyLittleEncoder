@@ -1,9 +1,6 @@
 #ifndef AES_H
 #define AES_H
 
-#include <stdlib.h>
-#include <stdio.h>
-
 #define TEST_DEF
 
 typedef unsigned char uc;

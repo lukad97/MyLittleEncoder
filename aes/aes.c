@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include "aes.h"
 #include "../des/DES/FILEHEADER.h"
 
@@ -314,7 +317,7 @@ void encryptFileECB(char *name, uc* key)
 	FILE *in, *out;
 	FileHeader head;
 	char *oname = malloc(strlen(name) + 3);
-	uc msg[BLOCK_SIZE], **subKeys, ekey[8];
+	uc msg[BLOCK_SIZE];
 	int i = 0;
 
     uc roundKeys[11][16];
@@ -368,7 +371,7 @@ void decryptFileECB(char *name, uc* key)
 	FILE *in, *out;
 	// FileHeader head;
 	char *oname = malloc(strlen(name) + 3);
-	uc msg[BLOCK_SIZE], c, **subKeys, ekey[8];
+	uc msg[BLOCK_SIZE];
 	int i = 0;
 
 
