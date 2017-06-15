@@ -142,6 +142,8 @@ void getRoundKeys(uc *key, uc roundKeys[11][16]) {
     }
 }
 
+// -------------- ENCRYPTION ---------------------
+
 void byteSub(uc *state) {
     for (int i = 0; i < 16; ++i) {
         state[i] = getSbox(state[i]);
@@ -207,9 +209,7 @@ void applyRound(uc *state, uc *roundKey) {
     addRoundKey(state, roundKey);
 }
 
-void encryptBlock(uc *state, uc *key) {
-    uc roundKeys[11][16];
-    getRoundKeys(key, roundKeys);
+void encryptBlockRoundKeys(uc *state, uc roundKeys[11][16]) {
     addRoundKey(state, roundKeys[0]);
     for (int i = 1; i <= 9; ++i)
         applyRound(state, roundKeys[i]);
@@ -217,6 +217,14 @@ void encryptBlock(uc *state, uc *key) {
     shiftRow(state);
     addRoundKey(state, roundKeys[10]);
 }
+
+void encryptBlock(uc *state, uc *key) {
+    uc roundKeys[11][16];
+    getRoundKeys(key, roundKeys);
+    encryptBlockRoundKeys(state, roundKeys);
+}
+
+// -------------- DECRYPTION ---------------------
 
 void invByteSub(uc *state) {
     for (int i = 0; i < 16; ++i) {
@@ -256,8 +264,22 @@ void invMixColumn(uc *state) {
     }
 }
 
+void getInvRoundKeys(uc *key, uc invRoundKeys[11][16]) {
+    uc expandedKey[176];
+    expandKey(key, expandedKey);
+    for (int k = 0; k < 11; ++k) {
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                invRoundKeys[k][4*j+i] = expandedKey[k*16+4*i+j];
+            }
+        }
+    }
+    for (int k = 1; k < 10; ++k) {
+        invMixColumn(invRoundKeys[k]);
+    }
+}
+
 void invAddRoundKey(uc *state, uc *roundKey) {
-    invMixColumn(roundKey);
     for (int i = 0; i < 16; ++i) {
         state[i] ^= roundKey[i];
     }
@@ -270,16 +292,22 @@ void applyInvRound(uc *state, uc *roundKey) {
     invShiftRow(state);
 }
 
-void decryptBlock(uc *state, uc *key) {
-    uc roundKeys[11][16];
-    getRoundKeys(key, roundKeys);
-    addRoundKey(state, roundKeys[10]);
+void decryptBlockRoundKeys(uc *state, uc invRoundKeys[11][16]) {
+    addRoundKey(state, invRoundKeys[10]);
     invByteSub(state);
     invShiftRow(state);
     for (int i = 9; i >= 1; --i)
-        applyInvRound(state, roundKeys[i]);
-    addRoundKey(state, roundKeys[0]);
+        applyInvRound(state, invRoundKeys[i]);
+    addRoundKey(state, invRoundKeys[0]);
 }
+
+void decryptBlock(uc *state, uc *key) {
+    uc invRoundKeys[11][16];
+    getInvRoundKeys(key, invRoundKeys);
+    decryptBlockRoundKeys(state, invRoundKeys);
+}
+
+// -------------- FILE ENCRYPTION ---------------------
 
 void encryptFileECB(char *name, uc* key)
 {
@@ -288,10 +316,10 @@ void encryptFileECB(char *name, uc* key)
 	char *oname = malloc(strlen(name) + 3);
 	uc msg[BLOCK_SIZE], **subKeys, ekey[8];
 	int i = 0;
-    /*
-	expandKey(key, ekey);
-	subKeys = keyGenerate(ekey);
-    */
+
+    uc roundKeys[11][16];
+    getRoundKeys(key, roundKeys);
+
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
 
@@ -325,7 +353,7 @@ void encryptFileECB(char *name, uc* key)
     {
         for (; i<BLOCK_SIZE; i++)
             msg[i] = 0;
-        encryptBlock(msg, key);
+        encryptBlockRoundKeys(msg, roundKeys);
         fwrite(msg, sizeof(uc), BLOCK_SIZE, out);
     }
 
@@ -342,10 +370,11 @@ void decryptFileECB(char *name, uc* key)
 	char *oname = malloc(strlen(name) + 3);
 	uc msg[BLOCK_SIZE], c, **subKeys, ekey[8];
 	int i = 0;
-    /*
-	expandKey(key, ekey);
-	subKeys = keyGenerate(ekey);
-    */
+
+
+    uc invRoundKeys[11][16];
+    getInvRoundKeys(key, invRoundKeys);
+
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
     /*
@@ -375,7 +404,7 @@ void decryptFileECB(char *name, uc* key)
 
 	while ((i = fread(msg, sizeof(uc), BLOCK_SIZE, in)))
     {
-        decryptBlock(msg, key);
+        decryptBlockRoundKeys(msg, invRoundKeys);
         fwrite(msg, sizeof(uc), BLOCK_SIZE, out);
     }
 
