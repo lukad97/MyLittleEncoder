@@ -406,7 +406,7 @@ int desEncryptFileECB(char *name, uc* key)
 	free(oname);
 
 	head = headerCreate(in, name);
-	
+
 	for (i = 0; i < 32; i++)
 	{
 		memcpy(msg, head.fileName + 8 * i, 8 * sizeof(uc));
@@ -480,7 +480,7 @@ FileHeader desDecryptFileECB(char *name, uc* key)
 	out = fopen(oname, "wb");
 	FILE_CHECK(out);
 	free(oname);
-	
+
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 		desEncodeBlock(msg, subKeys, 1, output);
@@ -784,18 +784,21 @@ int main()
 	uc output[8];
 	FileHeader head;
 	FILE *in;
+
 	in = fopen("test.txt", "rb");
 	FILE_CHECK(in);
 
 	head = headerCreate(in, "test.txt");
 
-	printf("Before enryption/decryption:\n\nName: %s\nSize: %lld bytes\nCRC: %d %d %d %d\n\n", head.fileName, head.len, head.crc[0], head.crc[1], head.crc[2], head.crc[3]);
+	printf("Before enryption/decryption:\n\nName: %s\nSize: \
+        %lld bytes\nCRC: %d %d %d %d\n\n", head.fileName, head.len, head.crc[0], head.crc[1], head.crc[2], head.crc[3]);
 	fclose(in);
 
 	desEncryptFileECB("test.txt", key1);
 	head = desDecryptFileECB("test_c.txt", key1);
 
-	printf("After enryption/decryption:\n\nName: %s\nSize: %lld bytes\nCRC: %d %d %d %d\n", head.fileName, head.len, head.crc[0], head.crc[1], head.crc[2], head.crc[3]);
+	printf("After enryption/decryption:\n\nName: %s\nSize: \
+        %lld bytes\nCRC: %d %d %d %d\n", head.fileName, head.len, head.crc[0], head.crc[1], head.crc[2], head.crc[3]);
 
 	//    tdesEncryptFileCBC("Ny5WD02.png", key1, key2, key3, IV);
 	//    tdesDecryptFileCBC("Ny5WD02_c.png", key1, key2, key3, IV);

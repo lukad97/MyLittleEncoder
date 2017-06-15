@@ -21,9 +21,9 @@ typedef struct
 
 
 FileHeader headerCreate(FILE *pFile, const char *pName);
-//int headerCheck(FileHeader *pHeader, const char *pName);
-//int headerSanityCheck(FileHeader *pHeader);
+// int headerCheck(FileHeader *pHeader, const char *pName);
+// int headerSanityCheck(FileHeader *pHeader);
 //
-//void getVacantFileName(char *pFilePath);
+// void getVacantFileName(char *pFilePath);
 
 #endif // FILEHEADER_H_INCLUDED
