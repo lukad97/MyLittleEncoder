@@ -5,6 +5,12 @@
 
 #define BATCH_READ_MAX 20
 
+#define ALLOC_CHECK(p)  if (!(p)) exit(1)
+#define FILE_CHECK(p)   if (!(p)) exit(2)
+
+#define ALLOC_ERR 1
+#define FILE_ERR  2
+
 FileHeader headerCreate(FILE *pFile, const char *pName)
 {
 	static uint32_t crc32_tab[] = {

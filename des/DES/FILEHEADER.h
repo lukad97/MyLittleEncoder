@@ -6,6 +6,12 @@
 
 #define FILENAME_LEN_MAX 256
 
+#define ALLOC_CHECK(p)  if (!(p)) exit(1)
+#define FILE_CHECK(p)   if (!(p)) exit(2)
+
+#define ALLOC_ERR 1
+#define FILE_ERR  2
+
 typedef struct
 {
 	char fileName[FILENAME_LEN_MAX];

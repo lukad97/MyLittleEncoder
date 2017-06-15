@@ -4,12 +4,6 @@
 #include <stdlib.h>
 #include "FILEHEADER.h"
 
-#define ALLOC_CHECK(p)  if (!(p)) exit(1)
-#define FILE_CHECK(p)   if (!(p)) exit(2)
-
-#define ALLOC_ERR 1
-#define FILE_ERR  2
-
 typedef unsigned char uc;
 
 void charToBin(uc*, int);
