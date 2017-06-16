@@ -198,6 +198,22 @@ void regex_encr() {
 
 void one_file_decr() {
     /** TODO **/
+    char file_name[MAX_STR_LEN];
+
+    if (get_one_string_input("File path:", file_name, 60)) {
+        FILE *file;
+        if (file = fopen(file_name, "r")) {
+            fclose(file);
+            if (active_key)
+                decrypt_file(file_name, active_key);
+            else
+                error_message("No active key selected!", 1);
+        }
+        else
+            error_message("File does not exist!", 1);
+    }
+    else
+        error_message("File path not inputed!", 1);
 }
 
 void more_files_decr() {
