@@ -4,20 +4,24 @@
 #include "list.h"
 #include "keys.h"
 #include "gui.h"
+#include "process.h"
 
 /************************* PREDEFINITIONS *************************/
+/// Menu
 void menu0(), menu1(), menu2();
 void menu0_add_key(), menu0_read_keys(), menu0_save_keys(), menu0_choose_active(), menu0_remove();
 void remove_key_option(), remove_all_keys_option();
 void show_encr_submenu(), show_decr_submenu();
 void one_file_encr(), more_files_encr(), regex_encr();
 void one_file_decr(), more_files_decr(), regex_decr();
+/// Other
+char* get_one_string_input(char *description, char *file_name, int field_size);
+
 
 /***************************** STATIC *****************************/
 static List *key_list = NULL;
 static Key *active_key = NULL;
 /// TREBACE JOS SIGURNO
-
 
 Menu main_menu[] =
 {
@@ -81,6 +85,30 @@ void menu2() {
 
 void menu0_add_key() {
     /** TODO **/
+    /**
+    char *field_descriptions[5];
+    char *field_buf[4];
+    char buf[4][MAX_STR_LEN];
+    buf[0][0] = buf[1][0] = buf[2][0] = buf[3][0] = '\0';
+
+    field_descriptions[0] = "Type";
+    field_descriptions[1] = "Mode";
+    field_descriptions[2] = "Key name";
+    field_descriptions[3] = "Key";
+    field_descriptions[4] = 0;
+    field_buf[0] = buf[0];
+    field_buf[1] = buf[1];
+    field_buf[2] = buf[2];
+    field_buf[3] = buf[3];
+
+    FILE *f = fopen("DEBUG.txt", "a");
+    fprintf(f, "lala\n");
+    if (get_input(field_descriptions, field_buf, 50) == KEY_ESC)
+        fprintf(f, "prccc\n");
+    else
+        fprintf(f, "%s %s %s %s\n", buf[0], buf[1], buf[2], buf[3]);
+    fclose(f);
+    **/
 }
 
 void menu0_read_keys() {
@@ -142,6 +170,22 @@ void show_decr_submenu() {
 
 void one_file_encr() {
     /** TODO **/
+    char file_name[MAX_STR_LEN];
+
+    if (get_one_string_input("File path:", file_name, 60)) {
+        FILE *file;
+        if (file = fopen(file_name, "r")) {
+            fclose(file);
+            if (active_key)
+                encrypt_file(file_name, active_key);
+            else
+                error_message("No active key selected!", 1);
+        }
+        else
+            error_message("File does not exist!", 1);
+    }
+    else
+        error_message("File path not inputed!", 1);
 }
 
 void more_files_encr() {
@@ -157,11 +201,22 @@ void one_file_decr() {
 }
 
 void more_files_decr() {
-}
     /** TODO **/
+}
 
 void regex_decr() {
     /** TODO **/
+}
+
+char* get_one_string_input(char *description, char *file_name, int field_size) {
+    char *field_name[2];
+    char *field_buf[1];
+
+    field_name[0] = description;
+    field_name[1] = 0;
+    field_buf[0] = file_name;
+
+    return (get_input(field_name, field_buf, field_size) == KEY_ESC) ? NULL : file_name;
 }
 
 int main(int argc, char *argv[]) {
@@ -174,7 +229,7 @@ int main(int argc, char *argv[]) {
     /// MAIN WORK
     if (argc == 1) /// gui
         start_menu(main_menu, "Encryption/Decryption SREDI OVAJ TITLE!");
-    else {
+    else { /// batch
 
     }
 

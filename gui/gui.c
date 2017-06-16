@@ -4,6 +4,7 @@
 #include <curses.h>
 #include <time.h>
 #include <stdio.h>
+#include <ctype.h>
 
 /* color_pair indices */
 #define TITLECOLOR          1
@@ -102,7 +103,7 @@ static char* str_add_space_left(char *s) {
 
 static char* convert_key_to_string(Key *key) {
     static char s[MAX_KEY_ROW_LEN];
-    sprintf(s, KEY_PRINT_FORMAT, key->type, key->mode, key->key_name, key->key);
+    sprintf(s, KEY_PRINT_FORMAT, key->type, key->mode, key->key_name, (key->key)[0], (key->key)[1], (key->key)[2]);
     return s;
 }
 
@@ -174,7 +175,7 @@ static void repaint_body_keys(ListElement *list_elem, int length, int pad_y, int
     ListElement *curr = list_elem;
     char row[MAX_KEY_ROW_LEN];
 
-    sprintf(row, KEY_PRINT_FORMAT, "Type", "Mode", "Key name", "Key");
+    sprintf(row, KEY_PRINT_FORMAT, "Type", "Mode", "Key name", "Key", "Key", "Key");
     ///mvwaddstr(wbody, pad_y, pad_x, row);
     error_message(row, 0);
 
@@ -472,6 +473,10 @@ void do_menu(Menu *mp) {
             (mp[curr_selection].func)();
             curs_set(0);
 
+            ///     stop = TRUE;
+            /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            /// da se vrati na pocetak, samo moram da vidim kako da ne brisem error_message
+            /// mislim da je dovoljno da se iskomentarise samo malo nize ~504 red
             repaint_menu(wmenu, mp);
 
             old_selection = -1;
@@ -504,6 +509,7 @@ void do_menu(Menu *mp) {
 
 void start_menu(Menu *mp, char *title) {
     initscr();
+    resize_term(LINES, COLS + 12);
     init_colors();
     in_curses = TRUE;
 
@@ -535,4 +541,164 @@ void start_menu(Menu *mp, char *title) {
 
     main_menu(mp);
     clean();
+}
+
+void repaint_edit_box(WINDOW *win, int x, char *buf) {
+    int max_x = getmaxx(win);
+    werase(win);
+    mvwprintw(win, 0, 0, "%s", pad_str_left(buf, max_x));
+    wmove(win, 0, x);
+    wrefresh(win);
+}
+
+WINDOW *winputbox(WINDOW *win, int n_lines, int n_cols) {
+    WINDOW *winp;
+    int curr_x, curr_y, beg_x, beg_y;
+
+    getyx(win, curr_y, curr_x);
+    getbegyx(win, beg_y, beg_x);
+
+    winp = newwin(n_lines, n_cols, beg_y + curr_y, beg_x + curr_x);
+    color_box(winp, INPUTBOXCOLOR, 1);
+
+    return winp;
+}
+
+int weditstr(WINDOW *win, char *buf, int field) {
+    char original_string[MAX_STR_LEN];
+    char *buf_pntr = buf;
+    bool display_default_message = TRUE, stop = FALSE, insert_mode = FALSE;
+    int curry, currx, begy, begx;
+    //int old_attr;
+    WINDOW *wedit;
+    int ch = 0;
+
+    if ((field >= MAX_STR_LEN) || (buf == NULL) || strlen(buf) > field - 1)
+        return ERR;
+
+    strcpy(original_string, buf);
+
+    wrefresh(win);
+    getyx(win, curry, currx);
+    getbegyx(win, begy, begx);
+
+    wedit = subwin(win, 1, field, begy + curry, begx + currx);
+    //old_attr = wedit->_attrs;
+    color_box(wedit, EDITBOXCOLOR, 0);
+
+    keypad(wedit, TRUE);
+    curs_set(1);
+
+    while (!stop) {
+        idle();
+        repaint_edit_box(wedit, buf_pntr - buf, buf);
+
+        switch (ch = wgetch(wedit)) {
+        case ERR:
+            break;
+        case KEY_ESC:
+            strcpy(buf, original_string);
+            stop = TRUE;
+            break;
+        case '\n':
+        case KEY_UP:
+        case KEY_DOWN:
+            stop = TRUE;
+            break;
+        case KEY_LEFT:
+            if (buf_pntr > buf)
+                buf_pntr--;
+            break;
+        case KEY_RIGHT:
+            display_default_message = FALSE;
+            if (buf_pntr - buf < strlen(buf))
+                buf_pntr++;
+            break;
+        case '\t':
+        case KEY_IC:
+        case KEY_EIC:
+            display_default_message = FALSE;
+            insert_mode = !insert_mode;
+            curs_set(insert_mode ? 2 : 1);
+            break;
+        default:
+            if (ch == erasechar()) {
+                if (buf_pntr > buf) {
+                    memmove((void*)(buf_pntr - 1), (const void*)buf_pntr, strlen(buf_pntr) + 1);
+                    buf_pntr--;
+                }
+            }
+            else if (isprint(ch)) {
+                if (display_default_message) {
+                    buf_pntr = buf;
+                    *buf_pntr = '\0';
+                    display_default_message = FALSE;
+                }
+
+                if (insert_mode) {
+                    if (strlen(buf) < field - 1) {
+                        memmove((void*)(buf_pntr + 1), (const void*)buf_pntr, strlen(buf_pntr) + 1);
+                        *buf_pntr++ = ch;
+                    }
+                }
+                else if (buf_pntr - buf < field - 1) {
+                    if (!*buf_pntr)
+                        buf_pntr[1] = '\0';
+                    *buf_pntr++ = ch;
+                }
+            }
+        }
+    }
+
+    curs_set(0);
+    //wattrset(wedit, old_attr);
+    color_box(wedit, INPUTBOXCOLOR, 0);
+    repaint_edit_box(wedit, buf_pntr - buf, buf);
+    delwin(wedit);
+
+    return ch;
+}
+
+int get_input(char *description[], char *buf[], int field) {
+    WINDOW *winput;
+    int oldy, oldx, maxy, maxx, n_lines, n_cols;
+    int i, n, len, max_desc_len = 0;
+    int ch = 0;
+    bool stop = FALSE;
+
+    for (n = 0; description[n]; n++)
+        if ((len = strlen(description[n])) > max_desc_len)
+            max_desc_len = len;
+
+    n_lines = n + 2, n_cols = max_desc_len + field + 4;
+    getyx(wbody, oldy, oldx);
+    getmaxyx(wbody, maxy, maxx);
+
+    winput = mvwinputbox(wbody, (maxy - n_lines) / 2, (maxx - n_cols) / 2, n_lines, n_cols);
+
+    for (i = 0; i < n; i++)
+        mvwprintw(winput, i + 1, 2, "%s", description[i]);
+
+    i = 0;
+    while (!stop) {
+        switch (ch = mvweditstr(winput, i + 1, max_desc_len + 3, buf[i], field)) {
+        case KEY_ESC:
+            stop = TRUE;
+            break;
+        case KEY_UP:
+            i = (i + n - 1) % n;
+            break;
+        case '\n':
+        case KEY_DOWN:
+            if (++i == n)
+                stop = TRUE;
+        }
+    }
+
+    delwin(winput);
+    touchwin(wbody);
+    wmove(wbody, oldx, oldy);
+    wrefresh(wbody);
+
+    return ch;
 }

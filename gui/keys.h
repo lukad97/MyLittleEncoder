@@ -22,8 +22,8 @@ typedef enum EncryptionMode {
 typedef struct Key {
     char type[10];
     char mode[10];
-    char key_name[200];
-    char key[100];
+    char key_name[25];
+    char key[3][20];
 } Key;
 
 int read_keys(char*, List**);

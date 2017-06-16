@@ -9,7 +9,7 @@
 #define KEY_ESC 0x1b
 
 #define MAX_KEY_NAME_LEN 25
-#define KEY_PRINT_FORMAT "%-5s %-5s %-25s %-s"
+#define KEY_PRINT_FORMAT "%-5s %-5s %-25s %-16s %-16s %-16s"
 #define MAX_STR_LEN 256
 
 typedef void (*Func)();
@@ -37,7 +37,15 @@ bool key_pressed();
 int get_key();
 int wait_for_key();
 
-Key* select_key(List*);
+WINDOW *winputbox(WINDOW*, int, int);
+int weditstr(WINDOW*, char*, int);
+void repaint_edit_box(WINDOW*, int, char*);
+int get_input(char*[], char*[], int);
 
+#define mvwinputbox(w,y,x,l,c) (wmove(w,y,x)==ERR?w:winputbox(w,l,c))
+#define mvweditstr(w,y,x,s,f) (wmove(w,y,x)==ERR?ERR:weditstr(w,s,f))
+
+
+Key* select_key(List*);
 
 #endif // _GUI_H

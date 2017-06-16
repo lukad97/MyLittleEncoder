@@ -25,11 +25,14 @@ int read_keys(char *filename, List **list) {
             pntr = strtok(NULL, SEPARATOR_STRING);
             strcpy(key->key_name, pntr);
             pntr = strtok(NULL, SEPARATOR_STRING);
-            strcpy(key->key, pntr);
+            strcpy((key->key)[0], pntr);
+            if (pntr = strtok(NULL, SEPARATOR_STRING))
+                strcpy((key->key)[1], pntr);
+            if (pntr = strtok(NULL, SEPARATOR_STRING))
+                strcpy((key->key)[2], pntr);
 
             tail_add(*list, (void*)key);
         }
-
         fclose(in_file);
         return 0;
     }
@@ -48,8 +51,8 @@ int write_keys(List *list, char *filename) {
         ListElement *curr;
         for (curr = list->head; curr; curr = curr->next) {
             Key *key = (Key*)curr->info;
-            fprintf(out_file, "%s%c%s%c%s%c%s\n", key->type, SEPARATOR, key->mode, SEPARATOR,
-                    key->key_name, SEPARATOR, key->key);
+            fprintf(out_file, "%s%c%s%c%s%c%s%c%s%c%s\n", key->type, SEPARATOR, key->mode, SEPARATOR,
+                    key->key_name, SEPARATOR, key->key[0], SEPARATOR, key->key[1], SEPARATOR, key->key[2]);
         }
         fclose(out_file);
         return 0;
