@@ -475,7 +475,6 @@ int desDecryptFileECB(char *name, uc* key)
 
 	out = fopen(oname, "wb");
 	FILE_CHECK(out);
-	free(oname);
 
 	len = head.byteLength;
 	
@@ -488,6 +487,15 @@ int desDecryptFileECB(char *name, uc* key)
 
 	freeKeys(subKeys);
 	fclose(in);
+	fclose(out);
+	out = fopen(oname, "rb");
+	FILE_CHECK(out);
+	free(oname);
+	if (!headerCheck(out, &head))
+	{
+		fclose(out);
+		return 3;
+	}
 	fclose(out);
 	return 0;
 }
@@ -761,13 +769,13 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 	memcpy(&head.crc, msg, sizeof(head.crc));
 	memcpy(&head.pad, msg + 4, sizeof(head.pad));
 
+
 	strcpy(oname, name);
 	oname[strlen(name) - 4] = '\0';
 	strcat(oname, "_c.txt");
 
 	out = fopen(oname, "wb");
 	FILE_CHECK(out);
-	free(oname);
 
 	len = head.byteLength;
 
@@ -783,6 +791,14 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 	freeKeys(subKeys3);
 
 	fclose(in);
+	fclose(out);
+	out = fopen(oname, "rb");
+	FILE_CHECK(out);
+	if (!headerCheck(out, &head))
+	{
+		fclose(out);
+		return 3;
+	}
 	fclose(out);
 	return 0;
 }
@@ -935,30 +951,11 @@ int main()
 	uc key1[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
 	uc key2[] = { 't', 'r', '3', '6', '6', 's', 'r' };
 	uc key3[] = { 'r', 'q', '1', 'm', 's', 'z', 'y' };
-	fileheader_t head;
-	FILE *in;
-	in = fopen("C:\\Users\\Luka Dojcilovic\\Desktop\\JobFair17.png", "rb");
-	FILE_CHECK(in);
 
-	head = headerCreate(in, "test.txt");
-
-	printf("Before enryption/decryption:\n\nName: %s\nSize: %lld bytes\nCRC: %d\n\n", head.fileName, head.byteLength, head.crc);
-	fclose(in);
-
-	encryptFile("C:\\Users\\Luka Dojcilovic\\Desktop\\JobFair17.png", key1, key2, key3, tdes_ebc);
-	decryptFile("C:\\Users\\Luka Dojcilovic\\Desktop\\JobFair17_c.txt", key1, key2, key3, tdes_ebc);
+	encryptFile("test.txt", key1, key2, key3, tdes_ebc);
+	decryptFile("test_c.txt", key1, key2, key3, tdes_ebc);
 
 
-	in = fopen("C:\\Users\\Luka Dojcilovic\\Desktop\\JobFair17_c_c.txt", "rb");
-	FILE_CHECK(in);
-
-	head = headerCreate(in, "ss");
-	printf("After enryption/decryption:\n\nName: %s\nSize: %lld bytes\nCRC: %d\n", head.fileName, head.byteLength, head.crc);
-
-	//    tdesEncryptFileCBC("Ny5WD02.png", key1, key2, key3, IV);
-	//    tdesDecryptFileCBC("Ny5WD02_c.png", key1, key2, key3, IV);
-
-	fclose(in);
 	getchar();
 	return 0;
 }
