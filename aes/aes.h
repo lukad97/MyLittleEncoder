@@ -1,9 +1,11 @@
 #ifndef AES_H
 #define AES_H
 
+#include <stdint.h>
+
 #define TEST_DEF
 
-typedef unsigned char uc;
+typedef uint8_t uc;
 
 #ifdef TEST_DEF
 

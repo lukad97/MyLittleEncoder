@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "aes.h"
-#include "FILEHEADER.h"
+#include "..\file-header\fileheader.h"
 
 #define BLOCK_SIZE 16
 
@@ -315,7 +315,7 @@ void decryptBlock(uc *state, uc *key) {
 void encryptFileECB(char *name, uc* key)
 {
 	FILE *in, *out;
-	FileHeader head;
+	fileheader_t head;
 	char *oname = malloc(strlen(name) + 3);
 	uc state[BLOCK_SIZE];
 	int i = 0;
@@ -336,8 +336,7 @@ void encryptFileECB(char *name, uc* key)
 
 	head = headerCreate(in, name);
 
-    printf("Before enryption/decryption:\n\nName: %s\nSize: \
-        %lld bytes\nCRC: %d %d %d %d\n\n", head.fileName, head.len, head.crc[0], head.crc[1], head.crc[2], head.crc[3]);
+	// headerPrint(&head);
 
     uc *p = &head;
 
@@ -360,10 +359,10 @@ void encryptFileECB(char *name, uc* key)
 	return;
 }
 
-FileHeader decryptFileECB(char *name, uc* key)
+int decryptFileECB(char *name, uc* key)
 {
 	FILE *in, *out;
-	FileHeader head;
+	fileheader_t header;
 	char *oname = malloc(strlen(name) + 3);
 	uc state[BLOCK_SIZE];
 	int i = 0;
@@ -374,22 +373,28 @@ FileHeader decryptFileECB(char *name, uc* key)
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
 
-	uc *p = &head;
-	for (int i = 0; i < sizeof(head)/BLOCK_SIZE; i++) {
+	uc *p = &header;
+	for (int i = 0; i < sizeof(header)/BLOCK_SIZE; i++) {
 	    fread(p, sizeof(uc), BLOCK_SIZE, in);
         decryptBlockRoundKeys(p, invRoundKeys);
         p += BLOCK_SIZE;
 	}
 
-    uint64_t len = head.len;
+    // headerPrint(&header);
 
-	strncpy(oname, name);
+    uint64_t len = header.byteLength;
+    /*
+    out = fopen(header.fileName, "rb");
+    if (out == NULL) {
+
+    }*/
+	strcpy(oname, name);
 	oname[strlen(name) - 4] = '\0';
 	strcat(oname, "_c.txt");
 
 	out = fopen(oname, "wb");
 	FILE_CHECK(out);
-	free(oname);
+
 
 	while ((i = fread(state, sizeof(uc), BLOCK_SIZE, in)))
     {
@@ -400,7 +405,16 @@ FileHeader decryptFileECB(char *name, uc* key)
 
 	fclose(in);
 	fclose(out);
-	return head;
+
+	in = fopen(oname, "rb");
+	FILE_CHECK(in);
+	free(oname);
+
+    i = headerCheck(in, &header);
+
+    fclose(in);
+
+	return i;
 }
 
 
@@ -422,5 +436,5 @@ int main() {
     char name[10] = "test.txt";
     encryptFileECB(name, key);
     char name2[15] = "test_c.txt";
-    decryptFileECB(name2, key);
+    printf("status = %d\n", decryptFileECB(name2, key));
 }
