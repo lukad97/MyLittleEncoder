@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "FILEHEADER.h"
 
 #define READ_BLOCK_MAX 16
@@ -45,6 +46,7 @@ fileheader_t headerCreate(FILE *file, const int8_t *fileName)
 	uint32_t crc = ~0U;
 	uint8_t readBlock[READ_BLOCK_MAX];
 	uint32_t bytesRead, i;
+
 	fileheader_t header;
 
 	strcpy(header.fileName, fileName);
@@ -62,6 +64,10 @@ fileheader_t headerCreate(FILE *file, const int8_t *fileName)
 
 	header.crc = crc & 0xFFFFFFFF;
 
+	srand(time(NULL));  
+	for (i = 0; i < 16; i++)
+		header.IV[i] = rand();
+	
 	return header;
 }
 
@@ -83,6 +89,7 @@ void headerPrint(fileheader_t *header)
 	printf("fileName: %s\n", header->fileName);
 	printf("length:   %ld\n", header->byteLength);
 	printf("crc32:    %x\n", header->crc);
+	
 }
 
 char* get_filename_from_path(char *file_path)

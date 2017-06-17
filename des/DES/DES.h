@@ -13,7 +13,7 @@
 
 typedef unsigned char uc;
 
-typedef enum {des_ebc, tdes_ebc} Algorithm;
+typedef enum {des_ecb, des_cbc, tdes_ecb} Algorithm;
 
 int encryptFile(char *filePath, uc* key1, uc* key2, uc* key3, Algorithm mode);
 int decryptFile(char *filePath, uc* key1, uc* key2, uc* key3, Algorithm mode);

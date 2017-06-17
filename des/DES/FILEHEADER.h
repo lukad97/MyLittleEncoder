@@ -12,6 +12,7 @@ typedef struct
 	uint64_t byteLength;
 	// uint8_t crc[4];
 	uint32_t crc, pad;
+	uint8_t IV[16];
 } fileheader_t;
 
 
