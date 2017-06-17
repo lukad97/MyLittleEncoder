@@ -15,7 +15,7 @@ typedef struct
 	uint8_t IV[16];
 } fileheader_t;
 
-
+char* get_filename_from_path(char *file_path);
 fileheader_t headerCreate(FILE *file, const int8_t *fileName);
 int          headerCheck(FILE *file, fileheader_t *header);
 

@@ -89,7 +89,7 @@ void headerPrint(fileheader_t *header)
 	printf("fileName: %s\n", header->fileName);
 	printf("length:   %ld\n", header->byteLength);
 	printf("crc32:    %x\n", header->crc);
-	
+	printf("IV:       %d\n", (header->IV)[0]);
 }
 
 char* get_filename_from_path(char *file_path)
