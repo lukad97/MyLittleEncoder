@@ -1,23 +1,30 @@
-#ifndef FILEHEADER_H_INCLUDED
-#define FILEHEADER_H_INCLUDED
+#ifndef _FILEHEADER_H_
+#define _FILEHEADER_H_
 
 #include <stdint.h>
 #include <stdlib.h>
 
 #define FILENAME_LEN_MAX 256
 
+#define ALLOC_CHECK(p)  if (!(p)) exit(1)
+#define FILE_CHECK(p)   if (!(p)) exit(2)
+
+#define ALLOC_ERR 1
+#define FILE_ERR  2
+
 typedef struct
 {
-	char fileName[FILENAME_LEN_MAX];
-	uint64_t len;
-	unsigned char crc[4], pad[4];
-} FileHeader;
+	int8_t fileName[FILENAME_LEN_MAX];
+	uint64_t byteLength;
+	// uint8_t crc[4];
+	uint32_t crc, pad;
+} fileheader_t;
 
 
-FileHeader headerCreate(FILE *pFile, const char *pName);
-//int headerCheck(FileHeader *pHeader, const char *pName);
-//int headerSanityCheck(FileHeader *pHeader);
-//
-//void getVacantFileName(char *pFilePath);
+fileheader_t headerCreate(FILE *file, const int8_t *fileName);
+int          headerCheck(FILE *file, fileheader_t *header);
 
-#endif // FILEHEADER_H_INCLUDED
+void headerPrint(fileheader_t *header);
+
+
+#endif // _FILEHEADER_H_
