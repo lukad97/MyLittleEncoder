@@ -18,8 +18,5 @@ typedef enum {des_ebc, tdes_ebc} Algorithm;
 int encryptFile(char *filePath, uc* key1, uc* key2, uc* key3, Algorithm mode);
 int decryptFile(char *filePath, uc* key1, uc* key2, uc* key3, Algorithm mode);
 
-//int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3, uc* IV);
-//int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3, uc* IV);
-
 #endif // _DES_H_
 
