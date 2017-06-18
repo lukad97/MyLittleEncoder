@@ -513,6 +513,8 @@ int desEncryptFileCBC(char *name, uc* key)
 	desExpandKey(key, ekey);
 	subKeys = keyGenerate(ekey);
 
+    // Biza was here
+
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
 
