@@ -2,6 +2,7 @@
 #include <string.h>
 #include "des.h"
 #include "../file_header/file_header.h"
+#include "../global.h"
 
 uc bitPairity(uc k)
 {
@@ -998,42 +999,4 @@ int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 	}
 	fclose(out);
 	return 0;
-}
-
-int encryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
-{
-	switch (mode)
-	{
-		case des_ecb:
-			return desEncryptFileECB(name, key1);
-			break;
-	    case des_cbc:
-			return desEncryptFileCBC(name, key1);
-			break;
-		case tdes_ecb:
-			return tdesEncryptFileECB(name, key1, key2, key3);
-			break;
-		case tdes_cbc:
-			return tdesEncryptFileCBC(name, key1, key2, key3);
-			break;
-	}
-}
-
-int decryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
-{
-	switch (mode)
-	{
-	case des_ecb:
-		return desDecryptFileECB(name, key1);
-		break;
-	case des_cbc:
-		return desDecryptFileCBC(name, key1);
-		break;
-	case tdes_ecb:
-		return tdesDecryptFileECB(name, key1, key2, key3);
-		break;
-	case tdes_cbc:
-		return tdesDecryptFileCBC(name, key1, key2, key3);
-		break;
-	}
 }

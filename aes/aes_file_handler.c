@@ -11,7 +11,7 @@
 
 // -------------- FILE ENCRYPTION ---------------------
 
-int encryptFileECB(char *path, uc* key)
+int aesEncryptFileECB(char *path, uc* key)
 {
 	FILE *in, *out;
 	fileheader_t head;
@@ -54,7 +54,7 @@ int encryptFileECB(char *path, uc* key)
 	return 0;
 }
 
-int decryptFileECB(char *path, uc* key)
+int aesDecryptFileECB(char *path, uc* key)
 {
 	FILE *in, *out;
 	fileheader_t header;
@@ -103,7 +103,7 @@ int decryptFileECB(char *path, uc* key)
 	in = fopen(outPath, "rb");
 	FILE_CHECK(in);
 
-    i = headerCheck(in, &header);
+    i = headerCheck(in, &header) ? CRC_MISMATCH : 0;
 
     fclose(in);
 

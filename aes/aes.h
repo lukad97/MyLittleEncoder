@@ -2,8 +2,7 @@
 #define _AES_H_
 
 #include <stdint.h>
-
-typedef uint8_t uc;
+#include "../global.h"
 
 void getRoundKeys(uc *key, uc roundKeys[11][16]);
 void encryptBlockRoundKeys(uc *state, uc roundKeys[11][16]);
