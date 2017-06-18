@@ -11,4 +11,6 @@
 
 typedef unsigned char uc;
 
+#define TEST_DEF
+
 #endif // _GLOBAL_H_

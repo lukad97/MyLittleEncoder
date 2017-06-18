@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-
+#include "../global.h"
 #define FILENAME_LEN_MAX 256
 
 typedef struct

@@ -5,7 +5,6 @@
 #include "aes_file_handler.h"
 #include "aes.h"
 #include "..\file_header\file_header.h"
-#include <errno.h>
 
 #define BLOCK_SIZE 16
 

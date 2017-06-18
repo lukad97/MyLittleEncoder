@@ -75,9 +75,11 @@ int headerCheck(FILE *file, fileheader_t *oldHeader)
 
     newHeader = headerCreate(file, "null");
 
+    #ifdef TEST_DEF
     headerPrint(&newHeader);
     printf("\n");
     headerPrint(oldHeader);
+    #endif // TEST_DEF
 
     return oldHeader->crc != newHeader.crc;
 }
