@@ -5,32 +5,33 @@
 #include "aes_file_handler.h"
 #include "aes.h"
 #include "..\file_header\file_header.h"
+#include <errno.h>
 
 #define BLOCK_SIZE 16
 
 // -------------- FILE ENCRYPTION ---------------------
 
-int encryptFileECB(char *name, uc* key)
+int encryptFileECB(char *path, uc* key)
 {
 	FILE *in, *out;
 	fileheader_t head;
-	char outName[256];
+	char outPath[256];
 	uc state[BLOCK_SIZE];
 	int i = 0;
 
     uc roundKeys[11][16];
     getRoundKeys(key, roundKeys);
 
-	in = fopen(name, "rb");
+	in = fopen(path, "rb");
 	FILE_CHECK(in);
 
-	strcpy(outName, name);
-	strcat(outName, ".dat");
+	strcpy(outPath, path);
+	strcat(outPath, ".dat");
 
-	out = fopen(outName, "wb");
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
 
-	head = headerCreate(in, get_filename_from_path(name));
+	head = headerCreate(in, get_filename_from_path(path));
 
     uc *p = (uc*) &head;
 
@@ -53,18 +54,18 @@ int encryptFileECB(char *name, uc* key)
 	return 0;
 }
 
-int decryptFileECB(char *name, uc* key)
+int decryptFileECB(char *path, uc* key)
 {
 	FILE *in, *out;
 	fileheader_t header;
-	char outName[256];
+	char outPath[256];
 	uc state[BLOCK_SIZE];
 	int i = 0;
 
     uc invRoundKeys[11][16];
     getInvRoundKeys(key, invRoundKeys);
 
-	in = fopen(name, "rb");
+	in = fopen(path, "rb");
 	FILE_CHECK(in);
 
 	uc *p = (uc*) &header;
@@ -76,17 +77,18 @@ int decryptFileECB(char *name, uc* key)
 
     uint64_t len = header.byteLength;
 
-    strcpy(outName, (char*) header.fileName);
-    out = fopen(outName, "rb");
+    strcpy(outPath, path);
+    strcpy(get_filename_from_path(outPath), (char*) header.fileName);
+
+    out = fopen(outPath, "rb");
     if (out != NULL) {
         fclose(out);
-        outName[0] = '\0';
         srand(time(NULL));
-        sprintf(outName, "%d\0", rand());
-        strcat(outName, (char*) header.fileName);
+        sprintf(get_filename_from_path(outPath), "%d\0", rand());
+        strcat(outPath, (char*) header.fileName);
     }
 
-	out = fopen(outName, "wb");
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
 
 	while ((i = fread(state, sizeof(uc), BLOCK_SIZE, in)))
@@ -98,7 +100,7 @@ int decryptFileECB(char *name, uc* key)
 	fclose(in);
 	fclose(out);
 
-	in = fopen(outName, "rb");
+	in = fopen(outPath, "rb");
 	FILE_CHECK(in);
 
     i = headerCheck(in, &header);
