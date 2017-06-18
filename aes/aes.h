@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#define TEST_DEF
-
 typedef uint8_t uc;
 
 void getRoundKeys(uc *key, uc roundKeys[11][16]);

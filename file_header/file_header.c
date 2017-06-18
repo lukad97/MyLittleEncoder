@@ -62,6 +62,10 @@ fileheader_t headerCreate(FILE *file, const char *fileName)
 
     header.crc = crc & 0xFFFFFFFF;
 
+    srand(time(NULL));
+	for (i = 0; i < 16; i++)
+		header.IV[i] = rand();
+
     return header;
 }
 
@@ -83,4 +87,16 @@ void headerPrint(fileheader_t *header)
     printf("fileName: %s\n", header->fileName);
     printf("length:   %ld\n", header->byteLength);
     printf("crc32:    %x\n", header->crc);
+}
+
+char* get_filename_from_path(char *file_path)
+{
+	char *pntr;
+	char *last_slash = file_path;
+
+	for (pntr = file_path; *pntr; pntr++)
+		if (*pntr == '\\')
+			last_slash = pntr;
+
+	return last_slash == file_path ? file_path : last_slash + 1;
 }

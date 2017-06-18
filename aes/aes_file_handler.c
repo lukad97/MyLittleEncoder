@@ -30,9 +30,7 @@ int encryptFileECB(char *name, uc* key)
 	out = fopen(outName, "wb");
 	FILE_CHECK(out);
 
-	head = headerCreate(in, name);
-
-	// headerPrint(&head);
+	head = headerCreate(in, get_filename_from_path(name));
 
     uc *p = (uc*) &head;
 
@@ -108,12 +106,4 @@ int decryptFileECB(char *name, uc* key)
     fclose(in);
 
 	return i;
-}
-
-int main() {
-    uc key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
-    char name[10] = "test.txt";
-    encryptFileECB(name, key);
-    char name2[20] = "test.txt.dat";
-    printf("status = %d\n", decryptFileECB(name2, key));
 }

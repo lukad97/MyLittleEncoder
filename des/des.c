@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include "DES.h"
-#include "FILEHEADER.h"
+#include "des.h"
+#include "../file_header/file_header.h"
 
 uc bitPairity(uc k)
 {
@@ -16,7 +16,7 @@ uc bitPairity(uc k)
 		return 0x01;
 }
 
-void expandKey(uc* key, uc *ekey)
+void desExpandKey(uc* key, uc *ekey)
 {
 	int i;
 	memset(ekey, 0, sizeof(ekey));
@@ -338,17 +338,12 @@ void freeKeys(uc **keys)
 	free(keys);
 }
 
+
 void desEncodeBlock(uc *input, uc **subKeys, int mode, uc *output)
 {
 	uc R[4], L[4], tempL[4], tempR[4];
 	uc pInput[8];
 	int i, j, k;
-
-	/*for (i = 0; i < 16; i++)
-		charToBin(subKeys[i], 6);
-
-	printf("\n");
-	return;*/
 
 	IP(input, pInput);
 
@@ -386,12 +381,12 @@ void desEncodeBlock(uc *input, uc **subKeys, int mode, uc *output)
 int desEncryptFileECB(char *name, uc* key)
 {
 	FILE *in, *out;
-	FileHeader head;
+	fileheader_t head;
 	char *oname = malloc(strlen(name) + 3);
 	uc msg[8], output[8], **subKeys, ekey[8];
 	int i = 0;
 
-	expandKey(key, ekey);
+	desExpandKey(key, ekey);
 	subKeys = keyGenerate(ekey);
 
 	in = fopen(name, "rb");
@@ -405,7 +400,7 @@ int desEncryptFileECB(char *name, uc* key)
 	FILE_CHECK(out);
 	free(oname);
 
-	head = headerCreate(in, name);
+	head = headerCreate(in, get_filename_from_path(name));
 
 	for (i = 0; i < 32; i++)
 	{
@@ -414,12 +409,12 @@ int desEncryptFileECB(char *name, uc* key)
 		fwrite(output, sizeof(uc), 8, out);
 	}
 
-	memcpy(msg, &head.len, sizeof(msg));
+	memcpy(msg, &head.byteLength, sizeof(msg));
 	desEncodeBlock(msg, subKeys, 0, output);
 	fwrite(output, sizeof(uc), 8, out);
 
-	memcpy(msg, head.crc, sizeof(head.crc));
-	memcpy(msg + 4, head.pad, sizeof(head.pad));
+	memcpy(msg, &head.crc, sizeof(head.crc));
+	memcpy(msg + 4, &head.pad, sizeof(head.pad));
 	desEncodeBlock(msg, subKeys, 0, output);
 	fwrite(output, sizeof(uc), 8, out);
 
@@ -443,15 +438,16 @@ int desEncryptFileECB(char *name, uc* key)
 	return 0;
 }
 
-FileHeader desDecryptFileECB(char *name, uc* key)
+int desDecryptFileECB(char *name, uc* key)
 {
 	FILE *in, *out;
-	FileHeader head;
+	fileheader_t head;
 	char *oname = malloc(strlen(name) + 3);
 	uc msg[8], output[8], c, **subKeys, ekey[8];
 	int i = 0;
+	uint64_t len;
 
-	expandKey(key, ekey);
+	desExpandKey(key, ekey);
 	subKeys = keyGenerate(ekey);
 
 	in = fopen(name, "rb");
@@ -466,12 +462,58 @@ FileHeader desDecryptFileECB(char *name, uc* key)
 
 	fread(output, sizeof(uc), 8, in);
 	desEncodeBlock(output, subKeys, 1, msg);
-	memcpy(&head.len, msg, sizeof(msg));
+	memcpy(&head.byteLength, msg, sizeof(msg));
 
 	fread(output, sizeof(uc), 8, in);
 	desEncodeBlock(output, subKeys, 1, msg);
-	memcpy(head.crc, msg, sizeof(head.crc));
-	memcpy(head.pad, msg + 4, sizeof(head.pad));
+	memcpy(&head.crc, msg, sizeof(head.crc));
+	memcpy(&head.pad, msg + 4, sizeof(head.pad));
+
+	strcpy(oname, name);
+	oname[strlen(name) - 4] = '\0';
+	strcat(oname, "_c.txt");
+
+	out = fopen(oname, "wb");
+	FILE_CHECK(out);
+
+	len = head.byteLength;
+
+	while ((fread(msg, sizeof(uc), 8, in)) == 8 )
+	{
+		desEncodeBlock(msg, subKeys, 1, output);
+		fwrite(output, sizeof(uc), (len > 8) ? 8 : len, out);
+		len -= 8;
+	}
+
+	freeKeys(subKeys);
+	fclose(in);
+	fclose(out);
+	out = fopen(oname, "rb");
+	FILE_CHECK(out);
+	free(oname);
+	if (!headerCheck(out, &head))
+	{
+		fclose(out);
+		return 3;
+	}
+	fclose(out);
+	return 0;
+}
+
+int desEncryptFileCBC(char *name, uc* key)
+{
+	FILE *in, *out;
+	char *oname = malloc(strlen(name) + 3);
+	uc msg[8], output[8], c;
+	fileheader_t head;
+	int i = 0, flag = 0, j;
+	char ekey[8], **subKeys;
+
+	desExpandKey(key, ekey);
+	subKeys = keyGenerate(ekey);
+
+	in = fopen(name, "rb");
+	FILE_CHECK(in);
 
 	strcpy(oname, name);
 	oname[strlen(name) - 4] = '\0';
@@ -481,88 +523,101 @@ FileHeader desDecryptFileECB(char *name, uc* key)
 	FILE_CHECK(out);
 	free(oname);
 
+	head = headerCreate(in, get_filename_from_path(name));
+
+	for (i = 0; i < 32; i++)
+	{
+		memcpy(msg, head.fileName + 8 * i, 8 * sizeof(uc));
+		desEncodeBlock(msg, subKeys, 0, output);
+		fwrite(output, sizeof(uc), 8, out);
+	}
+
+	memcpy(msg, &head.byteLength, sizeof(msg));
+	desEncodeBlock(msg, subKeys, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
+
+	memcpy(msg, &head.crc, sizeof(head.crc));
+	memcpy(msg + 4, &head.pad, sizeof(head.pad));
+	desEncodeBlock(msg, subKeys, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
+
+	memcpy(msg, head.IV, sizeof(msg));
+	desEncodeBlock(msg, subKeys, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
+
+
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
-		desEncodeBlock(msg, subKeys, 1, output);
+		if (!flag)
+		{
+			for (j = 0; j<8; j++)
+				msg[j] ^= head.IV[j];
+			flag = 1;
+		}
+		else
+			for (j = 0; j<8; j++)
+				msg[j] ^= output[j];
+		desEncodeBlock(msg, subKeys, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
 	}
 	if (i)
 	{
 		for (; i<8; i++)
 			msg[i] = 0;
-		desEncodeBlock(msg, subKeys, 1, output);
+		if (!flag)
+		{
+			for (j = 0; j<8; j++)
+				msg[j] ^= head.IV[j];
+			flag = 1;
+		}
+		else
+			for (j = 0; j<8; j++)
+				msg[j] ^= output[j];
+		desEncodeBlock(msg, subKeys, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
 	}
 
 	freeKeys(subKeys);
 	fclose(in);
 	fclose(out);
-	return head;
-}
-
-int desEncryptFileCBC(char *name, uc* key, uc* IV)
-{
-	FILE *in, *out;
-	char *oname = malloc(strlen(name) + 2);
-	uc msg[8], output[8], c;
-	int i = 0, flag = 0, j;
-
-	in = fopen(name, "rb");
-	FILE_CHECK(in);
-
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
-
-	out = fopen(oname, "wb");
-	FILE_CHECK(out);
-
-	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
-	{
-		if (!flag)
-		{
-			for (j = 0; j<8; j++)
-				msg[j] ^= IV[j];
-			flag = 1;
-		}
-		else
-			for (j = 0; j<8; j++)
-				msg[j] ^= output[j];
-		desEncodeBlock(msg, key, 0, output);
-		fwrite(output, sizeof(uc), 8, out);
-	}
-	if (i)
-	{
-		for (; i<8; i++)
-			msg[i] = 0;
-		if (!flag)
-		{
-			for (j = 0; j<8; j++)
-				msg[j] ^= IV[j];
-			flag = 1;
-		}
-		else
-			for (j = 0; j<8; j++)
-				msg[j] ^= output[j];
-		desEncodeBlock(msg, key, 0, output);
-		fwrite(output, sizeof(uc), 8, out);
-	}
-
-	free(oname);
-	fclose(in);
-	fclose(out);
 	return 0;
 }
 
-int desDecryptFileCBC(char *name, uc* key, uc* IV)
+int desDecryptFileCBC(char *name, uc* key)
 {
 	FILE *in, *out;
-	char *oname = malloc(strlen(name) + 2);
+	char *oname = malloc(strlen(name) + 3);
 	uc msg[8], prevMsg[8], output[8], c;
+	fileheader_t head;
+	char **subKeys, ekey[8];
 	int i = 0, flag = 0, j;
+	uint64_t len;
+
+	desExpandKey(key, ekey);
+	subKeys = keyGenerate(ekey);
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
+
+	for (i = 0; i < 32; i++)
+	{
+		fread(output, sizeof(uc), 8, in);
+		desEncodeBlock(output, subKeys, 1, msg);
+		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
+	}
+
+	fread(output, sizeof(uc), 8, in);
+	desEncodeBlock(output, subKeys, 1, msg);
+	memcpy(&head.byteLength, msg, sizeof(msg));
+
+	fread(output, sizeof(uc), 8, in);
+	desEncodeBlock(output, subKeys, 1, msg);
+	memcpy(&head.crc, msg, sizeof(head.crc));
+	memcpy(&head.pad, msg + 4, sizeof(head.pad));
+
+	fread(output, sizeof(uc), 8, in);
+	desEncodeBlock(output, subKeys, 1, msg);
+	memcpy(head.IV, msg, sizeof(msg));
 
 	strcpy(oname, name);
 	oname[strlen(name) - 4] = '\0';
@@ -571,46 +626,43 @@ int desDecryptFileCBC(char *name, uc* key, uc* IV)
 	out = fopen(oname, "wb");
 	FILE_CHECK(out);
 
+	len = head.byteLength;
+
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
-		desEncodeBlock(msg, key, 1, output);
+		desEncodeBlock(msg, subKeys, 1, output);
 		if (!flag)
 		{
-			for (j = 0; j<8; j++)
-				output[j] ^= IV[j];
+			for (j = 0; j < 8; j++)
+				output[j] ^= head.IV[j];
 			flag = 1;
 		}
 		else
-			for (j = 0; j<8; j++)
+			for (j = 0; j < 8; j++)
 				output[j] ^= prevMsg[j];
-		fwrite(output, sizeof(uc), 8, out);
+		fwrite(output, sizeof(uc), (len > 8) ? 8 : len, out);
 		for (i = 0; i<8; i++)
 			prevMsg[i] = msg[i];
-	}
-	if (i)
-	{
-		desEncodeBlock(msg, key, 1, output);
-		if (!flag)
-		{
-			for (j = 0; j<8; j++)
-				output[j] ^= IV[j];
-			flag = 1;
-		}
-		else
-			for (j = 0; j<8; j++)
-				output[j] ^= prevMsg[j];
-		fwrite(output, sizeof(uc), 8, out);
+		len -= 8;
 	}
 
-	free(oname);
+	freeKeys(subKeys);
 	fclose(in);
 	fclose(out);
+	out = fopen(oname, "rb");
+	FILE_CHECK(out);
+	free(oname);
+	if (!headerCheck(out, &head))
+	{
+		fclose(out);
+		return 3;
+	}
 	return 0;
 }
 
-int tdesEncodeBlock(uc *input, uc *key1, uc *key2, uc *key3, int mode, uc *output)
+int tdesEncodeBlock(uc *input, uc **subKeys1, uc **subKeys2, uc **subKeys3, int mode, uc *output)
 {
-	uc *Keys[3] = { key1, key2, key3 };
+	uc **Keys[3] = { subKeys1, subKeys2, subKeys3 };
 	int i, k;
 	for (i = 0; i<3; i++)
 	{
@@ -625,12 +677,162 @@ int tdesEncodeBlock(uc *input, uc *key1, uc *key2, uc *key3, int mode, uc *outpu
 	return 0;
 }
 
-int tdesEncodeFileECB(char *name, uc* key1, uc* key2, uc* key3, int mode)
+int tdesEncryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 {
 	FILE *in, *out;
-	char *oname = malloc(strlen(name) + 2);
-	uc msg[8], output[8], c;
+	char *oname = malloc(strlen(name) + 3);
+	uc msg[8], output[8], c, **subKeys1, **subKeys2, **subKeys3, ekey[8];
+	fileheader_t head;
 	int i = 0;
+
+	desExpandKey(key1, ekey);
+	subKeys1 = keyGenerate(ekey);
+
+	desExpandKey(key2, ekey);
+	subKeys2 = keyGenerate(ekey);
+
+	desExpandKey(key3, ekey);
+	subKeys3 = keyGenerate(ekey);
+
+	in = fopen(name, "rb");
+	FILE_CHECK(in);
+
+	strcpy(oname, name);
+	oname[strlen(name) - 4] = '\0';
+	strcat(oname, "_c.txt");
+
+	out = fopen(oname, "wb");
+	FILE_CHECK(out);
+	free(oname);
+
+	head = headerCreate(in, get_filename_from_path(name));
+
+	for (i = 0; i < 32; i++)
+	{
+		memcpy(msg, head.fileName + 8 * i, 8 * sizeof(uc));
+		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
+		fwrite(output, sizeof(uc), 8, out);
+	}
+
+	memcpy(msg, &head.byteLength, sizeof(msg));
+	tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
+
+	memcpy(msg, &head.crc, sizeof(head.crc));
+	memcpy(msg + 4, &head.pad, sizeof(head.pad));
+	tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
+
+
+	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
+	{
+		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
+		fwrite(output, sizeof(uc), 8, out);
+	}
+	if (i)
+	{
+		for (; i<8; i++)
+			msg[i] = 0;
+		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
+		fwrite(output, sizeof(uc), 8, out);
+	}
+
+	freeKeys(subKeys1);
+	freeKeys(subKeys2);
+	freeKeys(subKeys3);
+
+	fclose(in);
+	fclose(out);
+	return 0;
+}
+
+int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
+{
+	FILE *in, *out;
+	char *oname = malloc(strlen(name) + 3);
+	uc msg[8], output[8], c, **subKeys1, **subKeys2, **subKeys3, ekey[8];
+	fileheader_t head;
+	int i = 0;
+	uint64_t len;
+
+	desExpandKey(key1, ekey);
+	subKeys1 = keyGenerate(ekey);
+
+	desExpandKey(key2, ekey);
+	subKeys2 = keyGenerate(ekey);
+
+	desExpandKey(key3, ekey);
+	subKeys3 = keyGenerate(ekey);
+
+	in = fopen(name, "rb");
+	FILE_CHECK(in);
+
+	for (i = 0; i < 32; i++)
+	{
+		fread(output, sizeof(uc), 8, in);
+		tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
+		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
+	}
+
+	fread(output, sizeof(uc), 8, in);
+	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
+	memcpy(&head.byteLength, msg, sizeof(msg));
+
+	fread(output, sizeof(uc), 8, in);
+	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
+	memcpy(&head.crc, msg, sizeof(head.crc));
+	memcpy(&head.pad, msg + 4, sizeof(head.pad));
+
+	strcpy(oname, name);
+	oname[strlen(name) - 4] = '\0';
+	strcat(oname, "_c.txt");
+
+	out = fopen(oname, "wb");
+	FILE_CHECK(out);
+
+	len = head.byteLength;
+
+	while ((fread(msg, sizeof(uc), 8, in)) == 8)
+	{
+		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 1, output);
+		fwrite(output, sizeof(uc), (len > 8) ? 8 : len, out);
+		len -= 8;
+	}
+
+	freeKeys(subKeys1);
+	freeKeys(subKeys2);
+	freeKeys(subKeys3);
+
+	fclose(in);
+	fclose(out);
+	out = fopen(oname, "rb");
+	FILE_CHECK(out);
+	free(oname);
+	if (!headerCheck(out, &head))
+	{
+		fclose(out);
+		return 3;
+	}
+	fclose(out);
+	return 0;
+}
+
+int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
+{
+	FILE *in, *out;
+	char *oname = malloc(strlen(name) + 3);
+	fileheader_t head;
+	uc msg[8], output[8], c, **subKeys1, **subKeys2, **subKeys3, ekey[8];
+	int i, flag = 0, j;
+
+	desExpandKey(key1, ekey);
+	subKeys1 = keyGenerate(ekey);
+
+	desExpandKey(key2, ekey);
+	subKeys2 = keyGenerate(ekey);
+
+	desExpandKey(key3, ekey);
+	subKeys3 = keyGenerate(ekey);
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
@@ -642,54 +844,43 @@ int tdesEncodeFileECB(char *name, uc* key1, uc* key2, uc* key3, int mode)
 	out = fopen(oname, "wb");
 	FILE_CHECK(out);
 
-	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
+	head = headerCreate(in, get_filename_from_path(name));
+
+	for (i = 0; i < 32; i++)
 	{
-		tdesEncodeBlock(msg, key1, key2, key3, mode, output);
-		fwrite(output, sizeof(uc), 8, out);
-	}
-	if (i)
-	{
-		for (; i<8; i++)
-			msg[i] = 0;
-		tdesEncodeBlock(msg, key1, key2, key3, mode, output);
+		memcpy(msg, head.fileName + 8 * i, 8 * sizeof(uc));
+		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
 	}
 
-	free(oname);
-	fclose(in);
-	fclose(out);
-	return 0;
-}
+	memcpy(msg, &head.byteLength, sizeof(msg));
+	tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
 
-int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3, uc* IV)
-{
-	FILE *in, *out;
-	char *oname = malloc(strlen(name) + 2);
-	uc msg[8], output[8], c;
-	int i, flag = 0, j;
+	memcpy(msg, &head.crc, sizeof(head.crc));
+	memcpy(msg + 4, &head.pad, sizeof(head.pad));
+	tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
 
-	in = fopen(name, "rb");
-	FILE_CHECK(in);
+	memcpy(msg, &head.IV, sizeof(msg));
+	tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
+	fwrite(output, sizeof(uc), 8, out);
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.png");
 
-	out = fopen(oname, "wb");
-	FILE_CHECK(out);
+
 
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 		if (!flag)
 		{
 			for (j = 0; j<8; j++)
-				msg[j] ^= IV[j];
+				msg[j] ^= head.IV[j];
 			flag = 1;
 		}
 		else
 			for (j = 0; j<8; j++)
 				msg[j] ^= output[j];
-		tdesEncodeBlock(msg, key1, key2, key3, 0, output);
+		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
 		i = 0;
 	}
@@ -700,15 +891,19 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3, uc* IV)
 		if (!flag)
 		{
 			for (j = 0; j<8; j++)
-				msg[j] ^= IV[j];
+				msg[j] ^= head.IV[j];
 			flag = 1;
 		}
 		else
 			for (j = 0; j<8; j++)
 				msg[j] ^= output[j];
-		tdesEncodeBlock(msg, key1, key2, key3, 0, output);
+		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
 	}
+
+	freeKeys(subKeys1);
+	freeKeys(subKeys2);
+	freeKeys(subKeys3);
 
 	free(oname);
 	fclose(in);
@@ -716,93 +911,129 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3, uc* IV)
 	return 0;
 }
 
-int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3, uc* IV)
+int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 {
 	FILE *in, *out;
-	char *oname = malloc(strlen(name) + 2);
-	uc msg[8], prevMsg[8], output[8], c;
+	char *oname = malloc(strlen(name) + 3);
+	uc msg[8], prevMsg[8], output[8], c, **subKeys1, **subKeys2, **subKeys3, ekey[8];
+	fileheader_t head;
 	int i = 0, flag = 0, j;
+	uint64_t len;
+
+	desExpandKey(key1, ekey);
+	subKeys1 = keyGenerate(ekey);
+
+	desExpandKey(key2, ekey);
+	subKeys2 = keyGenerate(ekey);
+
+	desExpandKey(key3, ekey);
+	subKeys3 = keyGenerate(ekey);
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
 
+	for (i = 0; i < 32; i++)
+	{
+		fread(output, sizeof(uc), 8, in);
+		tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
+		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
+	}
+
+	fread(output, sizeof(uc), 8, in);
+	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
+	memcpy(&head.byteLength, msg, sizeof(msg));
+
+	fread(output, sizeof(uc), 8, in);
+	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
+	memcpy(&head.crc, msg, sizeof(head.crc));
+	memcpy(&head.pad, msg + 4, sizeof(head.pad));
+
+	fread(output, sizeof(uc), 8, in);
+	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
+	memcpy(head.IV, msg, sizeof(msg));
+
+
 	strcpy(oname, name);
 	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.png");
+	strcat(oname, "_c.txt");
 
 	out = fopen(oname, "wb");
 	FILE_CHECK(out);
 
+	len = head.byteLength;
+
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 
-		tdesEncodeBlock(msg, key1, key2, key3, 1, output);
+		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 1, output);
 		if (!flag)
 		{
 			for (j = 0; j<8; j++)
-				output[j] ^= IV[j];
+				output[j] ^= head.IV[j];
 			flag = 1;
 		}
 		else
 			for (j = 0; j<8; j++)
 				output[j] ^= prevMsg[j];
-		fwrite(output, sizeof(uc), 8, out);
+		fwrite(output, sizeof(uc), (len > 8) ? 8 : len, out);
+		len -= 8;
 		for (i = 0; i<8; i++)
 			prevMsg[i] = msg[i];
 	}
-	if (i)
-	{
-		for (; i<8; i++)
-			msg[i] = 0;
-		tdesEncodeBlock(msg, key1, key2, key3, 1, output);
-		if (!flag)
-		{
-			for (j = 0; j<8; j++)
-				output[j] ^= IV[j];
-			flag = 1;
-		}
-		else
-			for (j = 0; j<8; j++)
-				output[j] ^= prevMsg[j];
-		fwrite(output, sizeof(uc), 8, out);
-	}
 
-	free(oname);
+
+	freeKeys(subKeys1);
+	freeKeys(subKeys2);
+	freeKeys(subKeys3);
+
 	fclose(in);
+	fclose(out);
+	out = fopen(oname, "rb");
+	FILE_CHECK(out);
+	free(oname);
+	if (!headerCheck(out, &head))
+	{
+		fclose(out);
+		return 3;
+	}
 	fclose(out);
 	return 0;
 }
 
-
-int main()
+int encryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
 {
-	uc R[4], L[4];
-	uc IV[8] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' };
-	uc key1[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
-	uc key2[] = { 't', 'r', '3', '6', '6', 's', 'r' };
-	uc key3[] = { 'r', 'q', '1', 'm', 's', 'z', 'y' };
-	uc output[8];
-	FileHeader head;
-	FILE *in;
+	switch (mode)
+	{
+		case des_ecb:
+			return desEncryptFileECB(name, key1);
+			break;
+	    case des_cbc:
+			return desEncryptFileCBC(name, key1);
+			break;
+		case tdes_ecb:
+			return tdesEncryptFileECB(name, key1, key2, key3);
+			break;
+		case tdes_cbc:
+			return tdesEncryptFileCBC(name, key1, key2, key3);
+			break;
+	}
+}
 
-	in = fopen("test.txt", "rb");
-	FILE_CHECK(in);
-
-	head = headerCreate(in, "test.txt");
-
-	printf("Before enryption/decryption:\n\nName: %s\nSize: \
-        %lld bytes\nCRC: %d %d %d %d\n\n", head.fileName, head.len, head.crc[0], head.crc[1], head.crc[2], head.crc[3]);
-	fclose(in);
-
-	desEncryptFileECB("test.txt", key1);
-	head = desDecryptFileECB("test_c.txt", key1);
-
-	printf("After enryption/decryption:\n\nName: %s\nSize: \
-        %lld bytes\nCRC: %d %d %d %d\n", head.fileName, head.len, head.crc[0], head.crc[1], head.crc[2], head.crc[3]);
-
-	//    tdesEncryptFileCBC("Ny5WD02.png", key1, key2, key3, IV);
-	//    tdesDecryptFileCBC("Ny5WD02_c.png", key1, key2, key3, IV);
-
-	getchar();
-	return 0;
+int decryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
+{
+	switch (mode)
+	{
+	case des_ecb:
+		return desDecryptFileECB(name, key1);
+		break;
+	case des_cbc:
+		return desDecryptFileCBC(name, key1);
+		break;
+	case tdes_ecb:
+		return tdesDecryptFileECB(name, key1, key2, key3);
+		break;
+	case tdes_cbc:
+		return tdesDecryptFileCBC(name, key1, key2, key3);
+		break;
+	}
 }
