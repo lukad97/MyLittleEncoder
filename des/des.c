@@ -443,7 +443,6 @@ int desDecryptFileECB(char *name, uc* key)
 {
 	FILE *in, *out;
 	fileheader_t head;
-	char *oname = malloc(strlen(name) + 3);
 	uc msg[8], output[8], c, **subKeys, ekey[8];
 	int i = 0;
 	uint64_t len;
@@ -470,11 +469,19 @@ int desDecryptFileECB(char *name, uc* key)
 	memcpy(&head.crc, msg, sizeof(head.crc));
 	memcpy(&head.pad, msg + 4, sizeof(head.pad));
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+	char outPath[256];
+	strcpy(outPath, name);
+	strcpy(get_filename_from_path(outPath), (char*)head.fileName);
 
-	out = fopen(oname, "wb");
+	out = fopen(outPath, "rb");
+	if (out != NULL) {
+		fclose(out);
+		srand(time(NULL));
+		sprintf(get_filename_from_path(outPath), "%d\0", rand());
+		strcat(outPath, (char*)head.fileName);
+	}
+
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
 
 	len = head.byteLength;
@@ -489,14 +496,15 @@ int desDecryptFileECB(char *name, uc* key)
 	freeKeys(subKeys);
 	fclose(in);
 	fclose(out);
-	out = fopen(oname, "rb");
+	out = fopen(outPath, "rb");
 	FILE_CHECK(out);
-	free(oname);
-	if (!headerCheck(out, &head))
+
+	if (headerCheck(out, &head))
 	{
 		fclose(out);
 		return 3;
 	}
+
 	fclose(out);
 	return 0;
 }
@@ -589,7 +597,6 @@ int desEncryptFileCBC(char *name, uc* key)
 int desDecryptFileCBC(char *name, uc* key)
 {
 	FILE *in, *out;
-	char *oname = malloc(strlen(name) + 3);
 	uc msg[8], prevMsg[8], output[8], c;
 	fileheader_t head;
 	char **subKeys, ekey[8];
@@ -622,11 +629,19 @@ int desDecryptFileCBC(char *name, uc* key)
 	desEncodeBlock(output, subKeys, 1, msg);
 	memcpy(head.IV, msg, sizeof(msg));
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+	char outPath[256];
+	strcpy(outPath, name);
+	strcpy(get_filename_from_path(outPath), (char*)head.fileName);
 
-	out = fopen(oname, "wb");
+	out = fopen(outPath, "rb");
+	if (out != NULL) {
+		fclose(out);
+		srand(time(NULL));
+		sprintf(get_filename_from_path(outPath), "%d\0", rand());
+		strcat(outPath, (char*)head.fileName);
+	}
+
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
 
 	len = head.byteLength;
@@ -652,14 +667,15 @@ int desDecryptFileCBC(char *name, uc* key)
 	freeKeys(subKeys);
 	fclose(in);
 	fclose(out);
-	out = fopen(oname, "rb");
+	out = fopen(outPath, "rb");
 	FILE_CHECK(out);
-	free(oname);
-	if (!headerCheck(out, &head))
+
+	if (headerCheck(out, &head))
 	{
 		fclose(out);
 		return 3;
 	}
+
 	return 0;
 }
 
@@ -786,11 +802,19 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 	memcpy(&head.crc, msg, sizeof(head.crc));
 	memcpy(&head.pad, msg + 4, sizeof(head.pad));
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+	char outPath[256];
+	strcpy(outPath, name);
+	strcpy(get_filename_from_path(outPath), (char*)head.fileName);
 
-	out = fopen(oname, "wb");
+	out = fopen(outPath, "rb");
+	if (out != NULL) {
+		fclose(out);
+		srand(time(NULL));
+		sprintf(get_filename_from_path(outPath), "%d\0", rand());
+		strcat(outPath, (char*)head.fileName);
+	}
+
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
 
 	len = head.byteLength;
@@ -808,14 +832,15 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 
 	fclose(in);
 	fclose(out);
-	out = fopen(oname, "rb");
+	out = fopen(outPath, "rb");
 	FILE_CHECK(out);
-	free(oname);
-	if (!headerCheck(out, &head))
+
+	if (headerCheck(out, &head))
 	{
 		fclose(out);
 		return 3;
 	}
+
 	fclose(out);
 	return 0;
 }
@@ -868,9 +893,6 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 	memcpy(msg, &head.IV, sizeof(msg));
 	tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 	fwrite(output, sizeof(uc), 8, out);
-
-
-
 
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
@@ -955,12 +977,19 @@ int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
 	memcpy(head.IV, msg, sizeof(msg));
 
+	char outPath[256];
+	strcpy(outPath, name);
+	strcpy(get_filename_from_path(outPath), (char*)head.fileName);
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+	out = fopen(outPath, "rb");
+	if (out != NULL) {
+		fclose(out);
+		srand(time(NULL));
+		sprintf(get_filename_from_path(outPath), "%d\0", rand());
+		strcat(outPath, (char*)head.fileName);
+	}
 
-	out = fopen(oname, "wb");
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
 
 	len = head.byteLength;
@@ -991,14 +1020,15 @@ int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 
 	fclose(in);
 	fclose(out);
-	out = fopen(oname, "rb");
+	out = fopen(outPath, "rb");
 	FILE_CHECK(out);
-	free(oname);
-	if (!headerCheck(out, &head))
+
+	if (headerCheck(out, &head))
 	{
 		fclose(out);
 		return 3;
 	}
+
 	fclose(out);
 	return 0;
 }
