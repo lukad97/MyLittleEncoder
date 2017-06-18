@@ -6,8 +6,8 @@
 
 #define FILENAME_LEN_MAX 256
 
-#define ALLOC_CHECK(p)  if (!(p)) exit(1)
-#define FILE_CHECK(p)   if (!(p)) exit(2)
+#define ALLOC_CHECK(p)  if (!(p)) return(1)
+#define FILE_CHECK(p)   if (!(p)) return(2)
 
 #define ALLOC_ERR 1
 #define FILE_ERR  2
@@ -25,7 +25,5 @@ fileheader_t headerCreate(FILE *file, const int8_t *fileName);
 int          headerCheck(FILE *file, fileheader_t *header);
 
 void headerPrint(fileheader_t *header);
-
-;
 
 #endif // _FILEHEADER_H_

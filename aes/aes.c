@@ -316,7 +316,7 @@ void encryptFileECB(char *name, uc* key)
 {
 	FILE *in, *out;
 	fileheader_t head;
-	char *oname = malloc(strlen(name) + 3);
+	char *outName = malloc(strlen(name) + 3);
 	uc state[BLOCK_SIZE];
 	int i = 0;
 
@@ -326,13 +326,12 @@ void encryptFileECB(char *name, uc* key)
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+	strcpy(outName, name);
+	strcat(outName, ".dat");
 
-	out = fopen(oname, "wb");
+	out = fopen(outName, "wb");
 	FILE_CHECK(out);
-	free(oname);
+	free(outName);
 
 	head = headerCreate(in, name);
 
@@ -363,7 +362,7 @@ int decryptFileECB(char *name, uc* key)
 {
 	FILE *in, *out;
 	fileheader_t header;
-	char *oname = malloc(strlen(name) + 3);
+	char outName[256];
 	uc state[BLOCK_SIZE];
 	int i = 0;
 
@@ -383,18 +382,19 @@ int decryptFileECB(char *name, uc* key)
     // headerPrint(&header);
 
     uint64_t len = header.byteLength;
-    /*
-    out = fopen(header.fileName, "rb");
-    if (out == NULL) {
 
-    }*/
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+    strcpy(outName, header.fileName);
+    out = fopen(outName, "rb");
+    if (out != NULL) {
+        fclose(out);
+        outName[0] = '\0';
+        srand(time(NULL));
+        sprintf(outName, "%d\0", rand());
+        strcat(outName, header.fileName);
+    }
 
-	out = fopen(oname, "wb");
+	out = fopen(outName, "wb");
 	FILE_CHECK(out);
-
 
 	while ((i = fread(state, sizeof(uc), BLOCK_SIZE, in)))
     {
@@ -402,13 +402,12 @@ int decryptFileECB(char *name, uc* key)
         fwrite(state, sizeof(uc), len > BLOCK_SIZE ? BLOCK_SIZE : len, out);
         len -= BLOCK_SIZE;
     }
-
 	fclose(in);
 	fclose(out);
 
-	in = fopen(oname, "rb");
+	in = fopen(outName, "rb");
 	FILE_CHECK(in);
-	free(oname);
+	free(outName);
 
     i = headerCheck(in, &header);
 
@@ -435,6 +434,6 @@ int main() {
     uc key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
     char name[10] = "test.txt";
     encryptFileECB(name, key);
-    char name2[15] = "test_c.txt";
+    char name2[20] = "test.txt.dat";
     printf("status = %d\n", decryptFileECB(name2, key));
 }
