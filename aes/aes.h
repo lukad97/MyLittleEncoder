@@ -1,5 +1,5 @@
-#ifndef AES_H
-#define AES_H
+#ifndef _AES_H_
+#define _AES_H_
 
 #include <stdint.h>
 
@@ -7,10 +7,12 @@
 
 typedef uint8_t uc;
 
-#ifdef TEST_DEF
+void getRoundKeys(uc *key, uc roundKeys[11][16]);
+void encryptBlockRoundKeys(uc *state, uc roundKeys[11][16]);
+void encryptBlock(uc *state, uc *key);
 
-void print(void);
+void getInvRoundKeys(uc *key, uc invRoundKeys[11][16]);
+void decryptBlockRoundKeys(uc *state, uc invRoundKeys[11][16]);
+void decryptBlock(uc *state, uc *key);
 
-#endif // TEST_DEF
-
-#endif // AES_H
+#endif // _AES_H_

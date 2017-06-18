@@ -2,9 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "aes.h"
-#include "..\file-header\fileheader.h"
-
-#define BLOCK_SIZE 16
+#include "..\file_header\file_header.h"
 
 #ifdef TEST_DEF
 
@@ -30,6 +28,8 @@ void printBlock(uc *block) {
     }
 }
 #endif // TEST_DEF
+
+// --------------- KEY OPERATION ------------------------
 
 uc Sbox[256] =   {
 //0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
@@ -310,112 +310,6 @@ void decryptBlock(uc *state, uc *key) {
     decryptBlockRoundKeys(state, invRoundKeys);
 }
 
-// -------------- FILE ENCRYPTION ---------------------
-
-void encryptFileECB(char *name, uc* key)
-{
-	FILE *in, *out;
-	fileheader_t head;
-	char *outName = malloc(strlen(name) + 3);
-	uc state[BLOCK_SIZE];
-	int i = 0;
-
-    uc roundKeys[11][16];
-    getRoundKeys(key, roundKeys);
-
-	in = fopen(name, "rb");
-	FILE_CHECK(in);
-
-	strcpy(outName, name);
-	strcat(outName, ".dat");
-
-	out = fopen(outName, "wb");
-	FILE_CHECK(out);
-	free(outName);
-
-	head = headerCreate(in, name);
-
-	// headerPrint(&head);
-
-    uc *p = &head;
-
-	for (int i = 0; i < sizeof(head)/BLOCK_SIZE; i++) {
-        encryptBlockRoundKeys(p, roundKeys);
-        fwrite(p, sizeof(uc), BLOCK_SIZE, out);
-        p += BLOCK_SIZE;
-	}
-
-    while ((i = fread(state, sizeof(uc), BLOCK_SIZE, in)))
-    {
-        for (; i<BLOCK_SIZE; i++)
-            state[i] = 0;
-        encryptBlockRoundKeys(state, roundKeys);
-        fwrite(state, sizeof(uc), BLOCK_SIZE, out);
-    }
-
-	fclose(in);
-	fclose(out);
-	return;
-}
-
-int decryptFileECB(char *name, uc* key)
-{
-	FILE *in, *out;
-	fileheader_t header;
-	char outName[256];
-	uc state[BLOCK_SIZE];
-	int i = 0;
-
-    uc invRoundKeys[11][16];
-    getInvRoundKeys(key, invRoundKeys);
-
-	in = fopen(name, "rb");
-	FILE_CHECK(in);
-
-	uc *p = &header;
-	for (int i = 0; i < sizeof(header)/BLOCK_SIZE; i++) {
-	    fread(p, sizeof(uc), BLOCK_SIZE, in);
-        decryptBlockRoundKeys(p, invRoundKeys);
-        p += BLOCK_SIZE;
-	}
-
-    // headerPrint(&header);
-
-    uint64_t len = header.byteLength;
-
-    strcpy(outName, header.fileName);
-    out = fopen(outName, "rb");
-    if (out != NULL) {
-        fclose(out);
-        outName[0] = '\0';
-        srand(time(NULL));
-        sprintf(outName, "%d\0", rand());
-        strcat(outName, header.fileName);
-    }
-
-	out = fopen(outName, "wb");
-	FILE_CHECK(out);
-
-	while ((i = fread(state, sizeof(uc), BLOCK_SIZE, in)))
-    {
-        decryptBlockRoundKeys(state, invRoundKeys);
-        fwrite(state, sizeof(uc), len > BLOCK_SIZE ? BLOCK_SIZE : len, out);
-        len -= BLOCK_SIZE;
-    }
-	fclose(in);
-	fclose(out);
-
-	in = fopen(outName, "rb");
-	FILE_CHECK(in);
-	free(outName);
-
-    i = headerCheck(in, &header);
-
-    fclose(in);
-
-	return i;
-}
-
 
 #ifdef TEST_DEF
 void test1() {
@@ -429,11 +323,3 @@ void test1() {
     printBlock(state);
 }
 #endif // TEST_DEF
-
-int main() {
-    uc key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
-    char name[10] = "test.txt";
-    encryptFileECB(name, key);
-    char name2[20] = "test.txt.dat";
-    printf("status = %d\n", decryptFileECB(name2, key));
-}

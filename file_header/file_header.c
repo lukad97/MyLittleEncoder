@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "FILEHEADER.h"
+#include "file_header.h"
 
 #define READ_BLOCK_MAX 16
 
@@ -40,7 +40,7 @@ uint32_t crc32Table[] = {
 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-fileheader_t headerCreate(FILE *file, const int8_t *fileName)
+fileheader_t headerCreate(FILE *file, const char *fileName)
 {
     uint32_t crc = ~0U;
 	uint8_t readBlock[READ_BLOCK_MAX];
