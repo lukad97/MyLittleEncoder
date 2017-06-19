@@ -383,7 +383,7 @@ int desEncryptFileECB(char *name, uc* key)
 {
 	FILE *in, *out;
 	fileheader_t head;
-	char *oname = malloc(strlen(name) + 3);
+	char outPath[256];
 	uc msg[8], output[8], **subKeys, ekey[8];
 	int i = 0;
 
@@ -393,13 +393,11 @@ int desEncryptFileECB(char *name, uc* key)
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+	strcpy(outPath, name);
+	strcat(outPath, ".dat");
 
-	out = fopen(oname, "wb");
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
-	free(oname);
 
 	head = headerCreate(in, get_filename_from_path(name));
 
@@ -512,7 +510,7 @@ int desDecryptFileECB(char *name, uc* key)
 int desEncryptFileCBC(char *name, uc* key)
 {
 	FILE *in, *out;
-	char *oname = malloc(strlen(name) + 3);
+	char outPath[256];
 	uc msg[8], output[8], c;
 	fileheader_t head;
 	int i = 0, flag = 0, j;
@@ -521,18 +519,14 @@ int desEncryptFileCBC(char *name, uc* key)
 	desExpandKey(key, ekey);
 	subKeys = keyGenerate(ekey);
 
-    // Biza was here
-
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+	strcpy(outPath, name);
+	strcat(outPath, ".dat");
 
-	out = fopen(oname, "wb");
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
-	free(oname);
 
 	head = headerCreate(in, get_filename_from_path(name));
 
@@ -699,7 +693,7 @@ int tdesEncodeBlock(uc *input, uc **subKeys1, uc **subKeys2, uc **subKeys3, int 
 int tdesEncryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 {
 	FILE *in, *out;
-	char *oname = malloc(strlen(name) + 3);
+	char outPath[256];
 	uc msg[8], output[8], c, **subKeys1, **subKeys2, **subKeys3, ekey[8];
 	fileheader_t head;
 	int i = 0;
@@ -716,13 +710,11 @@ int tdesEncryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+	strcpy(outPath, name);
+	strcat(outPath, ".dat");
 
-	out = fopen(oname, "wb");
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
-	free(oname);
 
 	head = headerCreate(in, get_filename_from_path(name));
 
@@ -848,7 +840,7 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 {
 	FILE *in, *out;
-	char *oname = malloc(strlen(name) + 3);
+	char outPath[256];
 	fileheader_t head;
 	uc msg[8], output[8], c, **subKeys1, **subKeys2, **subKeys3, ekey[8];
 	int i, flag = 0, j;
@@ -865,11 +857,10 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
 
-	strcpy(oname, name);
-	oname[strlen(name) - 4] = '\0';
-	strcat(oname, "_c.txt");
+	strcpy(outPath, name);
+	strcat(outPath, ".dat");
 
-	out = fopen(oname, "wb");
+	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
 
 	head = headerCreate(in, get_filename_from_path(name));
@@ -930,7 +921,6 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 	freeKeys(subKeys2);
 	freeKeys(subKeys3);
 
-	free(oname);
 	fclose(in);
 	fclose(out);
 	return 0;
