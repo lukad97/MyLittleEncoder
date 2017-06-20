@@ -15,7 +15,7 @@ void menu0_add_key(), menu0_read_keys(), menu0_save_keys(), menu0_choose_active(
 void remove_key_option(), remove_all_keys_option();
 void show_encr_submenu(), show_decr_submenu();
 void one_file_encr(), more_files_encr(), regex_encr();
-void one_file_decr(), more_files_decr(), regex_decr();
+void one_file_decr(), more_files_decr(), regex_decr(), all_keys_decr();
 
 /***************************** STATIC *****************************/
 static List *key_list = NULL;
@@ -66,6 +66,7 @@ Menu decr_submenu[] =
     {"One file", one_file_decr, "Chose one file to decrypt"},
     {"More files", more_files_decr, "Choose more files to decrypt"},
     {"Regex", regex_decr, "Insert regex pattern for file names to decrypt"},
+    {"All keys", all_keys_decr, "Find the matching key for decryption"},
     {"", (Func)NULL, ""}
 };
 
@@ -270,6 +271,29 @@ void regex_decr() {
     else {
         decrypt_regex_files(regex_pattern, active_key);
         error_message("See log.txt for info about decryption.", 0);
+    }
+}
+
+void all_keys_decr() {
+    char file_name[MAX_STR_LEN] = {0};
+    char error_msg[MAX_STR_LEN];
+
+    if (!key_list->head)
+        error_message("No keys in the list!", 1);
+    else if (!get_one_string_input("File path:", file_name, 60))
+        error_message("File path not inputed!", 1);
+    else {
+        ListElement *curr;
+        Key *key;
+
+        for (curr = key_list->head; curr; curr = curr->next)
+            if (!decrypt_file(file_name, (Key*)curr->info, error_msg)) {
+                sprintf(error_msg, "Matching key found: %s", ((Key*)curr->info)->key_name);
+                error_message(error_msg, 0);
+                break;
+            }
+        if (!curr)
+            error_message("No matching key found!", 1);
     }
 }
 
