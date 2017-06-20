@@ -9,4 +9,6 @@
 
 void process_command(int argc, char *argv[], List *key_list);
 
+#define print_log(file, args...) if(file) fprintf(file, args)
+
 #endif // _BATCH_H

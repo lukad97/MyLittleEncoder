@@ -20,7 +20,6 @@ void one_file_decr(), more_files_decr(), regex_decr();
 /***************************** STATIC *****************************/
 static List *key_list = NULL;
 static Key *active_key = NULL;
-/// TREBACE JOS SIGURNO
 
 Menu main_menu[] =
 {
@@ -202,15 +201,19 @@ void one_file_encr() {
 
 void more_files_encr() {
     char file_name[MAX_STR_LEN] = {0};
+    FILE *log_file = fopen("log.txt", "w");
 
     if (!active_key)
         error_message("No active key selected!", 1);
     else if (!get_one_string_input("File path:", file_name, 60))
         error_message("File path not inputed!", 1);
-    else if (encrypt_more_files(file_name, active_key))
+    else if (encrypt_more_files(file_name, active_key, log_file))
         error_message("Unable to open file!", 1);
     else
         error_message("See log.txt for info about encryption.", 0);
+
+    if (log_file)
+        fclose(log_file);
 }
 
 void regex_encr() {
@@ -242,15 +245,19 @@ void one_file_decr() {
 
 void more_files_decr() {
     char file_name[MAX_STR_LEN] = {0};
+    FILE *log_file = fopen("log.txt", "w");
 
     if (!active_key)
         error_message("No active key selected!", 1);
     else if (!get_one_string_input("File path:", file_name, 60))
         error_message("File path not inputed!", 1);
-    else if (decrypt_more_files(file_name, active_key))
+    else if (decrypt_more_files(file_name, active_key, log_file))
         error_message("Unable to open file!", 1);
     else
         error_message("See log.txt for info about decryption.", 0);
+
+    if (log_file)
+        fclose(log_file);
 }
 
 void regex_decr() {
@@ -283,6 +290,5 @@ int main(int argc, char *argv[]) {
     remove_list(key_list);
     free(key_list);
     key_list = active_key = NULL;
-
     return 0;
 }

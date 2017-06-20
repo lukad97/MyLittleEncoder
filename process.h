@@ -2,12 +2,13 @@
 #define _PROCESS_H
 
 #include "keys.h"
+#include <stdio.h>
 
 int encrypt_file(char *file_path, Key *key, char *error_msg);
 int decrypt_file(char *file_path, Key *key, char *error_msg);
 
-int encrypt_more_files(char*, Key*);
-int decrypt_more_files(char*, Key*);
+int encrypt_more_files(char*, Key*, FILE*);
+int decrypt_more_files(char*, Key*, FILE*);
 
 void encrypt_regex_files(char*, Key*);
 void decrypt_regex_files(char*, Key*);

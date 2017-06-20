@@ -87,15 +87,12 @@ int decrypt_file(char *file_path, Key *key, char *error_msg) {
     return 0;
 }
 
-int encrypt_more_files(char *file_path, Key *key) {
+int encrypt_more_files(char *file_path, Key *key, FILE *log) {
     char file[MAX_STR_LEN];
     char error_msg[MAX_STR_LEN];
     FILE *f = fopen(file_path, "r");
-    FILE *log = fopen("log.txt", "a");
 
     if (f) {
-        if (log)
-            fprintf(log, "---------------------\n");
         while (fscanf(f, "%s", file) != EOF) {
             if (encrypt_file(file, key, error_msg)) {
                 if (log)
@@ -107,19 +104,16 @@ int encrypt_more_files(char *file_path, Key *key) {
             }
         }
         fclose(f);
-        if (log)
-            fclose(log);
         return 0;
     }
     else
         return 1;
 }
 
-int decrypt_more_files(char *file_path, Key *key) {
+int decrypt_more_files(char *file_path, Key *key, FILE *log) {
     char file[MAX_STR_LEN];
     char error_msg[MAX_STR_LEN];
     FILE *f = fopen(file_path, "r");
-    FILE *log = fopen("log.txt", "a");
 
     if (f) {
         while (fscanf(f, "%s", file) != EOF) {
@@ -133,7 +127,6 @@ int decrypt_more_files(char *file_path, Key *key) {
             }
         }
         fclose(f);
-        fclose(log);
         return 0;
     }
     else
