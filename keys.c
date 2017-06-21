@@ -87,7 +87,39 @@ Key* find_key_with_name(List *list, char *key_name) {
     return NULL;
 }
 
-/***** TODO *****/
-int check_correct_key(Key *key) {
-    return 1;
+int check_correct_key(Key *key, char *error_msg) {
+    char *encr_types[] = {"aes", "des", "3des", 0};
+    char *encr_modes[] = {"ecb", "cbc", 0};
+    char **pntr;
+    int is_aes = 0, is_des = 0, is_3des = 0;
+    int is_ecb = 0, is_cbc = 0;
+
+    if (!strcmp(key->type, encr_types[0]))
+        is_aes = 1;
+    else if (!strcmp(key->type, encr_types[1]))
+        is_des = 1;
+    else if (!strcmp(key->type, encr_types[2]))
+        is_3des = 1;
+
+    if (!(is_aes || is_des || is_3des)) {
+        strcpy(error_msg, "Incorrect key data! (type = aes|des|3des)");
+        return 1;
+    }
+
+    if (!strcmp(key->mode, encr_modes[0]))
+        is_ecb = 1;
+    else if (!strcmp(key->mode, encr_modes[1]))
+        is_cbc = 1;
+
+    if (!(is_ecb || is_cbc)) {
+        strcpy(error_msg, "Incorrect key data! (mode = ecb|cbc)");
+        return 1;
+    }
+
+    if ((is_aes && strlen(key->key[0]) != AES_KEY_LEN) || (is_des && strlen(key->key[0]) != DES_KEY_LEN) ||
+        (is_3des && (strlen(key->key[0]) != DES_KEY_LEN || strlen(key->key[1]) != DES_KEY_LEN || strlen(key->key[2]) != DES_KEY_LEN))) {
+        strcpy(error_msg, "Incorrect key data! (key length: aes(16)|des(7))");
+        return 1;
+    }
+    return 0;
 }

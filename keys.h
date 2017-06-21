@@ -40,6 +40,6 @@ void remove_key(List*, Key*);
 void remove_keys(List*);
 Key* find_key_with_name(List*, char*);
 
-int check_correct_key(Key*);
+int check_correct_key(Key*, char*);
 
 #endif // _KEYS_H

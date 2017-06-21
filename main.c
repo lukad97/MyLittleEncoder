@@ -83,9 +83,9 @@ void menu2() {
 }
 
 void menu0_add_key() {
-    /// mozda moze ovo malo lepse, ali za sad ovako!
     char *field_descriptions[7];
     char *buf[6];
+    char error_msg[MAX_STR_LEN];
     int sizes[6] = {5, 5, 16, 17, 17, 17};
     Key *key = (Key*) malloc(sizeof(Key));
 
@@ -120,8 +120,8 @@ void menu0_add_key() {
     */
     if (get_input(field_descriptions, buf, sizes) == KEY_ESC)
         error_message("No key inputed!", 1);
-    else if (!check_correct_key(key))
-        error_message("Incorrect key data!", 1);
+    else if (check_correct_key(key, error_msg))
+        error_message(error_msg, 1);
     else {
         add_key(key_list, key);
         if (!active_key)
