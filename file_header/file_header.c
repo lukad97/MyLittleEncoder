@@ -97,7 +97,7 @@ char* get_filename_from_path(char *file_path)
 	char *last_slash = file_path;
 
 	for (pntr = file_path; *pntr; pntr++)
-		if (*pntr == '\\')
+		if (*pntr == '/')
 			last_slash = pntr;
 
 	return last_slash == file_path ? file_path : last_slash + 1;
