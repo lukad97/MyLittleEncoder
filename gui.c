@@ -906,6 +906,10 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
     curs_set(0);
     clear_file_explorer_subwin(win);
     repaint_file_explorer(win, names, entries_found < n_lines ? entries_found : n_lines, 1, 1);
+    set_color(win, BODYREVCOLOR);
+    mvwaddstr(win, 1 + curr % n_lines, 1, names[curr % n_lines]);
+    set_color(win, BODYCOLOR);
+    wrefresh(win);
     strcpy(message + base_message_len, curr_path);
     error_message(message, 0);
 
