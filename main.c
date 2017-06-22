@@ -187,28 +187,28 @@ void show_decr_submenu() {
 }
 
 void one_file_encr() {
-    char file_name[MAX_STR_LEN] = {0};
+    char file_path[MAX_STR_LEN] = {0};
     char error_msg[MAX_STR_LEN];
 
     if (!active_key)
         error_message("No active key selected!", 1);
-    else if (!get_one_string_input("File path:", file_name, 60))
+    else if (get_filepath(file_path) == KEY_ESC)
         error_message("File path not inputed!", 1);
-    else if (encrypt_file(file_name, active_key, error_msg))
+    else if (encrypt_file(file_path, active_key, error_msg))
         error_message(error_msg, 1);
     else
         error_message("File encrypted!", 0);
 }
 
 void more_files_encr() {
-    char file_name[MAX_STR_LEN] = {0};
+    char file_path[MAX_STR_LEN] = {0};
     FILE *log_file = fopen("log.txt", "w");
 
     if (!active_key)
         error_message("No active key selected!", 1);
-    else if (!get_one_string_input("File path:", file_name, 60))
+    else if (get_filepath(file_path) == KEY_ESC)
         error_message("File path not inputed!", 1);
-    else if (encrypt_more_files(file_name, active_key, log_file))
+    else if (encrypt_more_files(file_path, active_key, log_file))
         error_message("Unable to open file!", 1);
     else
         error_message("See log.txt for info about encryption.", 0);
@@ -231,28 +231,28 @@ void regex_encr() {
 }
 
 void one_file_decr() {
-    char file_name[MAX_STR_LEN] = {0};
+    char file_path[MAX_STR_LEN] = {0};
     char error_msg[MAX_STR_LEN];
 
     if (!active_key)
         error_message("No active key selected!", 1);
-    else if (!get_one_string_input("File path:", file_name, 60))
+    else if (get_filepath(file_path) == KEY_ESC)
         error_message("File path not inputed!", 1);
-    else if (decrypt_file(file_name, active_key, error_msg))
+    else if (decrypt_file(file_path, active_key, error_msg))
         error_message(error_msg, 1);
     else
         error_message("File decrypted!", 0);
 }
 
 void more_files_decr() {
-    char file_name[MAX_STR_LEN] = {0};
+    char file_path[MAX_STR_LEN] = {0};
     FILE *log_file = fopen("log.txt", "w");
 
     if (!active_key)
         error_message("No active key selected!", 1);
-    else if (!get_one_string_input("File path:", file_name, 60))
+    else if (get_filepath(file_path) == KEY_ESC)
         error_message("File path not inputed!", 1);
-    else if (decrypt_more_files(file_name, active_key, log_file))
+    else if (decrypt_more_files(file_path, active_key, log_file))
         error_message("Unable to open file!", 1);
     else
         error_message("See log.txt for info about decryption.", 0);

@@ -4,6 +4,7 @@
 #include "list.h"
 #include "keys.h"
 #include <curses.h>
+#include <dirent.h>
 
 #define A_ATTR (A_ATTRIBUTES ^ A_COLOR)
 #define KEY_ESC 0x1b
@@ -43,7 +44,11 @@ int get_input(char*[], char*[], int*);
 #define mvwinputbox(w,y,x,l,c) (wmove(w,y,x)==ERR?w:winputbox(w,l,c))
 #define mvweditstr(w,y,x,s,f) (wmove(w,y,x)==ERR?ERR:weditstr(w,s,f))
 
-
 Key* select_key(List*);
+int weditpath(WINDOW*, char*, int);
+void file_explorer(WINDOW*, DIR **, int*, int, int*, int*, int*, char*);
+int get_filepath(char*);
+
+#define mvweditpath(w,y,x,s,f) (wmove(w,y,x)==ERR?ERR:weditpath(w,s,f))
 
 #endif // _GUI_H
