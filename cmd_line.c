@@ -78,11 +78,20 @@ static void process_ed_command(int argc, char *argv[], List *key_list, FILE *log
                 printf("See log.txt for info about encryption...\n");
         }
         else {
-            if (encrypt_regex_files(argv[2], key, error_msg, log_file)) {
-                print_log(log_file_tmp, "%s\n", error_msg);
+            if (argv[2][0] != '\'' || argv[2][strlen(argv[2]) - 1] != '\'') {
+                print_log(log_file_tmp, "File path not enclosed in ''");
             }
-            else if (print_to_stdout)
-                printf("See log.txt for info about encryption...\n");
+            else {
+                /// filepath is enclosed in ''
+                strcpy(argv[2], argv[2] + 1);
+                argv[2][strlen(argv[2]) - 1] = '\0';
+
+                if (encrypt_regex_files(argv[2], key, error_msg, log_file)) {
+                    print_log(log_file_tmp, "%s\n", error_msg);
+                }
+                else if (print_to_stdout)
+                    printf("See log.txt for info about encryption...\n");
+            }
         }
     }
     else {
@@ -102,11 +111,20 @@ static void process_ed_command(int argc, char *argv[], List *key_list, FILE *log
                 printf("See log.txt for info about decryption...\n");
         }
         else {
-            if (decrypt_regex_files(argv[2], key, error_msg, log_file)) {
-                print_log(log_file_tmp, "%s\n", error_msg);
+            if (argv[2][0] != '\'' || argv[2][strlen(argv[2]) - 1] != '\'') {
+                print_log(log_file_tmp, "File path not enclosed in ''");
             }
-            else if (print_to_stdout)
-                printf("See log.txt for info about decryption...\n");
+            else {
+                /// filepath is enclosed in ''
+                strcpy(argv[2], argv[2] + 1);
+                argv[2][strlen(argv[2]) - 1] = '\0';
+
+                if (decrypt_regex_files(argv[2], key, error_msg, log_file)) {
+                    print_log(log_file_tmp, "%s\n", error_msg);
+                }
+                else if (print_to_stdout)
+                    printf("See log.txt for info about decryption...\n");
+            }
         }
     }
 }

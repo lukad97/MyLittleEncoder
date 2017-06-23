@@ -97,14 +97,6 @@ static int regex_preprocess(char *file_path, char *error_msg) {
     char stat_str[MAX_STR_LEN];
     FILE *out_file = fopen(REGEX_TMP_FILE, "w");
 
-    /// filepath should be enclosed in ''
-    if (file_path[0] != '\'' || file_path[strlen(file_path) - 1] != '\'') {
-        strcpy(error_msg, "File path not enclosed in ''");
-        return 1;
-    }
-    strcpy(file_path, file_path + 1);
-    file_path[strlen(file_path) - 1] = '\0';
-
     /// getting pattern part from path
     strcpy(regex_pattern, get_filename_from_path(file_path));
 
