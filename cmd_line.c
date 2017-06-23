@@ -77,8 +77,13 @@ static void process_ed_command(int argc, char *argv[], List *key_list, FILE *log
             else if (print_to_stdout)
                 printf("See log.txt for info about encryption...\n");
         }
-        else
-            encrypt_regex_files(argv[2], key);
+        else {
+            if (encrypt_regex_files(argv[2], key, error_msg, log_file)) {
+                print_log(log_file_tmp, "%s\n", error_msg);
+            }
+            else if (print_to_stdout)
+                printf("See log.txt for info about encryption...\n");
+        }
     }
     else {
         if (!more_files_flag && !regex_flag) {
@@ -96,8 +101,13 @@ static void process_ed_command(int argc, char *argv[], List *key_list, FILE *log
             else if (print_to_stdout)
                 printf("See log.txt for info about decryption...\n");
         }
-        else
-            decrypt_regex_files(argv[2], key);
+        else {
+            if (decrypt_regex_files(argv[2], key, error_msg, log_file)) {
+                print_log(log_file_tmp, "%s\n", error_msg);
+            }
+            else if (print_to_stdout)
+                printf("See log.txt for info about decryption...\n");
+        }
     }
 }
 

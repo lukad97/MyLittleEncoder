@@ -4,10 +4,15 @@
 #include "encryption.h"
 #include "global.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <regex.h>
 
 /*********************** INTERNAL FUNCTIONS ***********************/
-Algorithm select_algorithm(Key *key) {
+static Algorithm select_algorithm(Key *key) {
     Algorithm algo;
     int aes_flag = 0, des_flag = 0, tdes_flag = 0;
     int ecb_flag = 0, cbc_flag = 0;
@@ -33,6 +38,107 @@ Algorithm select_algorithm(Key *key) {
     }
 
     return algo;
+}
+
+static void build_regexp_string(char *pattern) {
+    char *filename_pntr = pattern + strlen(pattern) - 1;
+
+    /// find first char of filename
+    while (filename_pntr >= pattern && *filename_pntr != '/')
+        filename_pntr--;
+    filename_pntr++;
+
+    /// replacing * and ?
+    while (*filename_pntr) {
+        if (*filename_pntr == '*') {
+            memmove((void*)(filename_pntr + MULTICHAR_REGEX_LEN), (const void*)(filename_pntr + 1), strlen(filename_pntr + 1) + 1);
+            strncpy(filename_pntr, MULTICHAR_REGEX, MULTICHAR_REGEX_LEN);
+            filename_pntr += MULTICHAR_REGEX_LEN;
+        }
+        else if (*filename_pntr == '?') {
+            memmove((void*)(filename_pntr + SINGLECHAR_REGEX_LEN), (const void*)(filename_pntr + 1), strlen(filename_pntr + 1) + 1);
+            strncpy(filename_pntr, MULTICHAR_REGEX, SINGLECHAR_REGEX_LEN);
+            filename_pntr += SINGLECHAR_REGEX_LEN;
+        }
+        else if (*filename_pntr == '.') {
+            memmove((void*)(filename_pntr + 3), (const void*)(filename_pntr + 1), strlen(filename_pntr + 1) + 1);
+            strncpy(filename_pntr, "[.]", 3);
+            filename_pntr += 3;
+        }
+        else
+            filename_pntr++;
+    }
+}
+
+static void remove_filename_from_path(char *path) {
+    char *pntr = path + strlen(path) - 1;
+    while (pntr >= path && *pntr != '/')
+        pntr--;
+    *(pntr + 1) = '\0';
+}
+
+static char* get_filename_from_path(char *file_path) {
+	char *pntr;
+	char *last_slash = file_path;
+
+	for (pntr = file_path; *pntr; pntr++)
+		if (*pntr == '/')
+			last_slash = pntr;
+
+	return last_slash == file_path ? file_path : last_slash + 1;
+}
+
+static int regex_preprocess(char *file_path, char *error_msg) {
+    struct re_pattern_buffer pattern_buf;
+    char regex_pattern[MAX_STR_LEN];
+    DIR *dir;
+    struct dirent *entry;
+    struct stat stats;
+    char stat_str[MAX_STR_LEN];
+    FILE *out_file = fopen(REGEX_TMP_FILE, "w");
+
+    /// filepath should be enclosed in ''
+    if (file_path[0] != '\'' || file_path[strlen(file_path) - 1] != '\'') {
+        strcpy(error_msg, "File path not enclosed in ''");
+        return 1;
+    }
+    strcpy(file_path, file_path + 1);
+    file_path[strlen(file_path) - 1] = '\0';
+
+    /// getting pattern part from path
+    strcpy(regex_pattern, get_filename_from_path(file_path));
+
+    /// finding directory
+    remove_filename_from_path(file_path);
+    if (file_path[0] == '\0')
+        strcpy(file_path, "./");
+
+    ///open directory
+    dir = opendir(file_path);
+    if (!dir) {
+        strcpy(error_msg, "Directory not found!");
+        return 1;
+    }
+
+    /// compiling pattern
+    re_syntax_options = RE_INTERVALS | RE_CHAR_CLASSES | RE_CONTEXT_INDEP_OPS;
+    build_regexp_string(regex_pattern);
+    pattern_buf.translate = pattern_buf.fastmap = pattern_buf.buffer = pattern_buf.allocated = 0;
+    re_compile_pattern(regex_pattern, strlen(regex_pattern), &pattern_buf);
+
+    /// going through directory entries
+    while (entry = readdir(dir)) {
+        strcpy(stat_str, file_path);
+        strcat(stat_str, entry->d_name);
+
+        /// only files are being compared to regex
+        stat(stat_str, &stats);
+        if (S_ISREG(stats.st_mode) && re_match(&pattern_buf, entry->d_name, strlen(entry->d_name), 0, 0) == strlen(entry->d_name) && out_file)
+            fprintf(out_file, "%s\n", stat_str);
+    }
+    closedir(dir);
+    fclose(out_file);
+    return 0;
 }
 
 /*********************** EXTERNAL FUNCTIONS ***********************/
@@ -133,12 +239,30 @@ int decrypt_more_files(char *file_path, Key *key, FILE *log) {
         return 1;
 }
 
-/*** TODO ***/
-void encrypt_regex_files(char *regex_pattern, Key *key) {
+int encrypt_regex_files(char *file_path, Key *key, char *error_msg, FILE *log) {
+    int exit_code = regex_preprocess(file_path, error_msg);
+
+    if (exit_code)
+        return 1;
+
+    if (encrypt_more_files(REGEX_TMP_FILE, key, log)) {
+        strcpy(error_msg, "Unable to open regex temporary file");
+        return 1;
+    }
+    return 0;
 }
 
-/*** TODO ***/
-void decrypt_regex_files(char *regex_pattern, Key *key) {
+int decrypt_regex_files(char *file_path, Key *key, char *error_msg, FILE *log) {
+    int exit_code = regex_preprocess(file_path, error_msg);
+
+    if (exit_code)
+        return 1;
+
+    if (decrypt_more_files(REGEX_TMP_FILE, key, log)) {
+        strcpy(error_msg, "Unable to open regex temporary file");
+        return 1;
+    }
+    return 0;
 }
 
 char* get_one_string_input(char *description, char *buf, int field_size) {

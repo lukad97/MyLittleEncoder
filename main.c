@@ -219,15 +219,20 @@ void more_files_encr() {
 
 void regex_encr() {
     char regex_pattern[MAX_STR_LEN] = {0};
+    char error_msg[MAX_STR_LEN];
+    FILE *log_file = fopen("log.txt", "w");
 
     if (!active_key)
         error_message("No active key selected!", 1);
     else if (!get_one_string_input("Regex pattern:", regex_pattern, 60))
         error_message("Regex pattern not inputed!", 1);
-    else {
-        encrypt_regex_files(regex_pattern, active_key);
+    else if (encrypt_regex_files(regex_pattern, active_key, error_msg, log_file))
+        error_message(error_msg, 1);
+    else
         error_message("See log.txt for info about encryption.", 0);
-    }
+
+    if (log_file)
+        fclose(log_file);
 }
 
 void one_file_decr() {
@@ -263,15 +268,20 @@ void more_files_decr() {
 
 void regex_decr() {
     char regex_pattern[MAX_STR_LEN] = {0};
+    char error_msg[MAX_STR_LEN];
+    FILE *log_file = fopen("log.txt", "w");
 
     if (!active_key)
         error_message("No active key selected!", 1);
     else if (!get_one_string_input("Regex pattern:", regex_pattern, 60))
         error_message("Regex pattern not inputed!", 1);
-    else {
-        decrypt_regex_files(regex_pattern, active_key);
+    else if (decrypt_regex_files(regex_pattern, active_key, error_msg, log_file))
+        error_message(error_msg, 1);
+    else
         error_message("See log.txt for info about decryption.", 0);
-    }
+
+    if (log_file)
+        fclose(log_file);
 }
 
 void all_keys_decr() {
