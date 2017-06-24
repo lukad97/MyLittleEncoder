@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <windows.h>
 
 /* color_pair indices */
 #define TITLECOLOR          1
@@ -265,6 +266,22 @@ static int find_dir_entries(DIR *dir, int start_idx, int max_entries, char *curr
     }
 
     return i;
+}
+
+static void find_curr_path(char **curr_path, int len) {
+    int bytes = GetModuleFileName(NULL, curr_path, len);
+    if (bytes == 0)
+        strcpy(curr_path, "./");
+    else {
+        char *last_slash = curr_path;
+        char *curr;
+        for (curr = curr_path; *curr; curr++)
+            if (*curr == '\\') {
+                    *curr = '/';
+                    last_slash = curr;
+            }
+        *(last_slash + 1) = '\0';
+    }
 }
 
 static void main_help() {
@@ -989,9 +1006,16 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
             break;
         case '\n':
             if (names[curr % n_lines][0] == '/' || !strcmp(names[curr % n_lines], "..")) {
-                int offset = names[curr % n_lines][0] == '/';
-                strcat(curr_path, names[curr % n_lines] + offset);
-                strcat(curr_path, "/");
+                if (names[curr % n_lines][0] == '/') {
+                    strcat(curr_path, names[curr % n_lines] + 1);
+                    strcat(curr_path, "/");
+                }
+                else {
+                    char *path_pntr = curr_path + strlen(curr_path) - 2;
+                    while (*path_pntr != '/')
+                        path_pntr--;
+                    *(path_pntr + 1) = '\0';
+                }
 
                 closedir(*dir);
                 *dir = opendir(curr_path);
@@ -1028,13 +1052,18 @@ int get_filepath(char *path) {
     bool stop = FALSE;
     int begy, begx;
     int curr_selection = 0, old_selection = -1, rewrite_old_flag = 1;
-    char curr_path[MAX_STR_LEN] = "./"; /// da pamtim trenutnu putanju za file explorer
-    DIR *curr_dir = opendir(".");
+    char curr_path[MAX_STR_LEN]; /// da pamtim trenutnu putanju za file explorer
+    DIR *curr_dir;
     struct dirent *entry;
-    int dir_entries = count_dir_entries(curr_dir, curr_path);
+    int dir_entries;
     char *file_path_str = "File path:";
     int file_path_str_len = strlen(file_path_str);
     int choose_flag = 0;
+
+    /// initialize current path
+    find_curr_path(&curr_path, MAX_STR_LEN);
+    curr_dir = opendir(curr_path);
+    dir_entries = count_dir_entries(curr_dir, curr_path);
 
     getbegyx(wbody, begy, begx);
     wpath = newwin(3, BW, begy, begx);
