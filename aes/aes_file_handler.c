@@ -8,12 +8,12 @@
 
 // -------------- FILE ENCRYPTION ---------------------
 
-int aesEncryptFileECB(char *path, uc* key, int Nk)
+int aesEncryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
 {
 	FILE *in, *out;
-	fileheader_t head;
-	char outPath[256];
-	uc state[BLOCK_SIZE];
+	fileheader_t header;
+	char outPath[FILENAME_LEN_MAX+4];
+	uc state[BLOCK_SIZE], IV[BLOCK_SIZE];
 	int i = 0, Nr = Nk + 6;
 
     uc roundKeys[Nr+1][BLOCK_SIZE];
@@ -28,11 +28,14 @@ int aesEncryptFileECB(char *path, uc* key, int Nk)
 	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
 
-	head = headerCreate(in, get_filename_from_path(path));
+	header = headerCreate(in, get_filename_from_path(path));
 
-    uc *p = (uc*) &head;
+    for (i = 0; i < BLOCK_SIZE; ++i)
+        IV[i] = header.IV[i];
 
-	for (int i = 0; i < sizeof(head)/BLOCK_SIZE; i++) {
+    uc *p = (uc*) &header;
+
+	for (i = 0; i < sizeof(header)/BLOCK_SIZE; i++) {
         encryptBlockRoundKeys(p, roundKeys, Nr);
         fwrite(p, sizeof(uc), BLOCK_SIZE, out);
         p += BLOCK_SIZE;
@@ -42,7 +45,22 @@ int aesEncryptFileECB(char *path, uc* key, int Nk)
     {
         for (; i<BLOCK_SIZE; i++)
             state[i] = 0;
-        encryptBlockRoundKeys(state, roundKeys, Nr);
+
+        if (mode == EBC)
+        {
+            encryptBlockRoundKeys(state, roundKeys, Nr);
+        }
+        else if (mode == CBC)
+        {
+            for (i = 0; i < BLOCK_SIZE; ++i) {
+                state[i] ^= IV[i];
+            }
+            encryptBlockRoundKeys(state, roundKeys, Nr);
+            for (i = 0; i < BLOCK_SIZE; ++i) {
+                IV[i] = state[i];
+            }
+        }
+
         fwrite(state, sizeof(uc), BLOCK_SIZE, out);
     }
 
@@ -51,12 +69,12 @@ int aesEncryptFileECB(char *path, uc* key, int Nk)
 	return 0;
 }
 
-int aesDecryptFileECB(char *path, uc* key, int Nk)
+int aesDecryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
 {
 	FILE *in, *out;
 	fileheader_t header;
-	char outPath[256];
-	uc state[BLOCK_SIZE];
+	char outPath[FILENAME_MAX+4];
+	uc state[BLOCK_SIZE], temp_state[BLOCK_SIZE];
 	int i = 0, Nr = Nk + 6;
 
     uc invRoundKeys[Nr+1][BLOCK_SIZE];
@@ -90,7 +108,22 @@ int aesDecryptFileECB(char *path, uc* key, int Nk)
 
 	while ((i = fread(state, sizeof(uc), BLOCK_SIZE, in)))
     {
-        decryptBlockRoundKeys(state, invRoundKeys, Nr);
+        if (mode == EBC)
+        {
+            decryptBlockRoundKeys(state, invRoundKeys, Nr);
+        }
+        else if (mode == CBC)
+        {
+            for (i = 0; i < BLOCK_SIZE; ++i) {
+                temp_state[i] = state[i];
+            }
+            decryptBlockRoundKeys(state, invRoundKeys, Nr);
+            for (i = 0; i < BLOCK_SIZE; ++i) {
+                state[i] ^= header.IV[i];
+                header.IV[i] = temp_state[i];
+            }
+        }
+
         fwrite(state, sizeof(uc), len > BLOCK_SIZE ? BLOCK_SIZE : len, out);
         len -= BLOCK_SIZE;
     }
