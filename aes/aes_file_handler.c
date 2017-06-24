@@ -6,20 +6,18 @@
 #include "aes.h"
 #include "..\file_header\file_header.h"
 
-#define BLOCK_SIZE 16
-
 // -------------- FILE ENCRYPTION ---------------------
 
-int aesEncryptFileECB(char *path, uc* key)
+int aesEncryptFileECB(char *path, uc* key, int Nk)
 {
 	FILE *in, *out;
 	fileheader_t head;
 	char outPath[256];
 	uc state[BLOCK_SIZE];
-	int i = 0;
+	int i = 0, Nr = Nk + 6;
 
-    uc roundKeys[11][16];
-    getRoundKeys(key, roundKeys);
+    uc roundKeys[Nr+1][BLOCK_SIZE];
+    getRoundKeys(key, roundKeys, Nk, REGULAR);
 
 	in = fopen(path, "rb");
 	FILE_CHECK(in);
@@ -35,7 +33,7 @@ int aesEncryptFileECB(char *path, uc* key)
     uc *p = (uc*) &head;
 
 	for (int i = 0; i < sizeof(head)/BLOCK_SIZE; i++) {
-        encryptBlockRoundKeys(p, roundKeys);
+        encryptBlockRoundKeys(p, roundKeys, Nr);
         fwrite(p, sizeof(uc), BLOCK_SIZE, out);
         p += BLOCK_SIZE;
 	}
@@ -44,7 +42,7 @@ int aesEncryptFileECB(char *path, uc* key)
     {
         for (; i<BLOCK_SIZE; i++)
             state[i] = 0;
-        encryptBlockRoundKeys(state, roundKeys);
+        encryptBlockRoundKeys(state, roundKeys, Nr);
         fwrite(state, sizeof(uc), BLOCK_SIZE, out);
     }
 
@@ -53,16 +51,16 @@ int aesEncryptFileECB(char *path, uc* key)
 	return 0;
 }
 
-int aesDecryptFileECB(char *path, uc* key)
+int aesDecryptFileECB(char *path, uc* key, int Nk)
 {
 	FILE *in, *out;
 	fileheader_t header;
 	char outPath[256];
 	uc state[BLOCK_SIZE];
-	int i = 0;
+	int i = 0, Nr = Nk + 6;
 
-    uc invRoundKeys[11][16];
-    getInvRoundKeys(key, invRoundKeys);
+    uc invRoundKeys[Nr+1][BLOCK_SIZE];
+    getRoundKeys(key, invRoundKeys, Nk, INVERSE);
 
 	in = fopen(path, "rb");
 	FILE_CHECK(in);
@@ -70,7 +68,7 @@ int aesDecryptFileECB(char *path, uc* key)
 	uc *p = (uc*) &header;
 	for (int i = 0; i < sizeof(header)/BLOCK_SIZE; i++) {
 	    fread(p, sizeof(uc), BLOCK_SIZE, in);
-        decryptBlockRoundKeys(p, invRoundKeys);
+        decryptBlockRoundKeys(p, invRoundKeys, Nr);
         p += BLOCK_SIZE;
 	}
 
@@ -92,7 +90,7 @@ int aesDecryptFileECB(char *path, uc* key)
 
 	while ((i = fread(state, sizeof(uc), BLOCK_SIZE, in)))
     {
-        decryptBlockRoundKeys(state, invRoundKeys);
+        decryptBlockRoundKeys(state, invRoundKeys, Nr);
         fwrite(state, sizeof(uc), len > BLOCK_SIZE ? BLOCK_SIZE : len, out);
         len -= BLOCK_SIZE;
     }

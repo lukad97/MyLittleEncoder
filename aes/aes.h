@@ -4,12 +4,16 @@
 #include <stdint.h>
 #include "../global.h"
 
-void getRoundKeys(uc *key, uc roundKeys[11][16]);
-void encryptBlockRoundKeys(uc *state, uc roundKeys[11][16]);
-void encryptBlock(uc *state, uc *key);
+#define BLOCK_SIZE 16
 
-void getInvRoundKeys(uc *key, uc invRoundKeys[11][16]);
-void decryptBlockRoundKeys(uc *state, uc invRoundKeys[11][16]);
-void decryptBlock(uc *state, uc *key);
+typedef enum {REGULAR, INVERSE} keyExpandMode;
+
+void getRoundKeys(uc *key, uc roundKeys[][16], int Nk, keyExpandMode inverse);
+
+void encryptBlockRoundKeys(uc *state, uc roundKeys[][16], int Nr);
+void encryptBlock(uc *state, uc *key, int Nk);
+
+void decryptBlockRoundKeys(uc *state, uc invRoundKeys[][16], int Nr);
+void decryptBlock(uc *state, uc *key, int Nk);
 
 #endif // _AES_H_

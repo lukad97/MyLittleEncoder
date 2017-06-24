@@ -18,8 +18,8 @@ int encryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
 		case tdes_cbc:
 			return tdesEncryptFileCBC(name, key1, key2, key3);
 			break;
-        case aes_ecb:
-            return aesEncryptFileECB(name, key1);
+        case aes256_ecb:
+            return aesEncryptFileECB(name, key1, 8);
             break;
         default:
             return UNKNOWN_ALG;
@@ -43,8 +43,8 @@ int decryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
 	case tdes_cbc:
 		return tdesDecryptFileCBC(name, key1, key2, key3);
 		break;
-    case aes_ecb:
-        return aesDecryptFileECB(name, key1);
+    case aes256_ecb:
+        return aesDecryptFileECB(name, key1, 8);
         break;
     default:
         return UNKNOWN_ALG;
