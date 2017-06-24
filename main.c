@@ -175,6 +175,7 @@ void remove_key_option() {
 
 void remove_all_keys_option() {
     remove_keys(key_list);
+    active_key = NULL;
     error_message("All keys removed!", 0);
 }
 
