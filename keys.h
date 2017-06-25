@@ -10,26 +10,28 @@
 
 #define MAX_KEY_ROW_LEN 256
 #define MAX_KEY_NAME_LEN 15
-#define KEY_PRINT_FORMAT "%-5s %-5s %-15s %-16s %-16s %-16s"
+#define KEY_PRINT_FORMAT_TDES "%-6s %-6s %-15s %-10s %-10s %-10s"
+#define KEY_PRINT_FORMAT_OTHERS "%-6s %-6s %-15s %-32s"
 
-#define AES_KEY_LEN 16
+#define AES16_KEY_LEN 16
+#define AES24_KEY_LEN 24
+#define AES32_KEY_LEN 32
 #define DES_KEY_LEN 7
 
-/*
-typedef enum EncryptionType {
-    DES, TRIPLE_DES, AES
-} EncryptionType;
+#define AES16_STR "aes16"
+#define AES24_STR "aes24"
+#define AES32_STR "aes32"
+#define DES_STR "des"
+#define TDES_STR "3des"
 
-typedef enum EncryptionMode {
-
-} EncryptionMode;
-*/
+#define MODE_ECB_STR "ecb"
+#define MODE_CBC_STR "cbc"
 
 typedef struct Key {
     char type[10];
     char mode[10];
     char key_name[20];
-    unsigned char key[3][20];
+    unsigned char key[3][35];
 } Key;
 
 int read_keys(char*, List**);

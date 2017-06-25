@@ -88,21 +88,25 @@ Key* find_key_with_name(List *list, char *key_name) {
 }
 
 int check_correct_key(Key *key, char *error_msg) {
-    char *encr_types[] = {"aes", "des", "3des", 0};
-    char *encr_modes[] = {"ecb", "cbc", 0};
+    char *encr_types[] = {AES16_STR, AES24_STR, AES32_STR, DES_STR, TDES_STR, 0};
+    char *encr_modes[] = {MODE_ECB_STR, MODE_CBC_STR, 0};
     char **pntr;
-    int is_aes = 0, is_des = 0, is_3des = 0;
+    int is_aes16 = 0, is_aes24 = 0, is_aes32 = 0, is_des = 0, is_3des = 0;
     int is_ecb = 0, is_cbc = 0;
 
     if (!strcmp(key->type, encr_types[0]))
-        is_aes = 1;
+        is_aes16 = 1;
     else if (!strcmp(key->type, encr_types[1]))
-        is_des = 1;
+        is_aes24 = 1;
     else if (!strcmp(key->type, encr_types[2]))
+        is_aes32 = 1;
+    else if (!strcmp(key->type, encr_types[3]))
+        is_des = 1;
+    else if (!strcmp(key->type, encr_types[4]))
         is_3des = 1;
 
-    if (!(is_aes || is_des || is_3des)) {
-        strcpy(error_msg, "Incorrect key data! (type = aes|des|3des)");
+    if (!(is_aes16 || is_aes24 || is_aes32 || is_des || is_3des)) {
+        strcpy(error_msg, "Incorrect key data! (type = aes16|aes24|aes32|des|3des)");
         return 1;
     }
 
@@ -116,9 +120,10 @@ int check_correct_key(Key *key, char *error_msg) {
         return 1;
     }
 
-    if ((is_aes && strlen(key->key[0]) != AES_KEY_LEN) || (is_des && strlen(key->key[0]) != DES_KEY_LEN) ||
+    if ((is_aes16 && strlen(key->key[0]) != AES16_KEY_LEN) || (is_aes24 && strlen(key->key[0]) != AES24_KEY_LEN) ||
+        (is_aes32 && strlen(key->key[0]) != AES32_KEY_LEN) || (is_des && strlen(key->key[0]) != DES_KEY_LEN) ||
         (is_3des && (strlen(key->key[0]) != DES_KEY_LEN || strlen(key->key[1]) != DES_KEY_LEN || strlen(key->key[2]) != DES_KEY_LEN))) {
-        strcpy(error_msg, "Incorrect key data! (key length: aes(16)|des(7))");
+        strcpy(error_msg, "Incorrect key data! (key length: aes16(16)|aes24(24)|aes32(32)|des(7))");
         return 1;
     }
     return 0;

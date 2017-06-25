@@ -12,7 +12,10 @@ static void print_keys(List *key_list) {
 
     for (curr = key_list->head; curr; curr = curr->next) {
         key = (Key*)curr->info;
-        printf(KEY_PRINT_FORMAT, key->type, key->mode, key->key_name, (key->key)[0], (key->key)[1], (key->key)[2]);
+        if (!strcmp(key->type, TDES_STR))
+            printf(KEY_PRINT_FORMAT_TDES, key->type, key->mode, key->key_name, (key->key)[0], (key->key)[1], (key->key)[2]);
+        else
+            printf(KEY_PRINT_FORMAT_OTHERS, key->type, key->mode, key->key_name, (key->key)[0]);
         printf("\n");
     }
 }

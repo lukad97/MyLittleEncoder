@@ -14,19 +14,29 @@
 /*********************** INTERNAL FUNCTIONS ***********************/
 static Algorithm select_algorithm(Key *key) {
     Algorithm algo;
-    int aes_flag = 0, des_flag = 0, tdes_flag = 0;
+    int aes16_flag = 0, aes24_flag = 0, aes32_flag = 0, des_flag = 0, tdes_flag = 0;
     int ecb_flag = 0, cbc_flag = 0;
 
-    if (!strcmp(key->type, "aes")) aes_flag = 1;
-    else if (!strcmp(key->type, "des")) des_flag = 1;
+    if (!strcmp(key->type, AES16_STR)) aes16_flag = 1;
+    else if (!strcmp(key->type, AES24_STR)) aes24_flag = 1;
+    else if (!strcmp(key->type, AES32_STR)) aes32_flag = 1;
+    else if (!strcmp(key->type, DES_STR)) des_flag = 1;
     else tdes_flag = 1;
 
-    if (!strcmp(key->mode, "ecb")) ecb_flag = 1;
+    if (!strcmp(key->mode, MODE_ECB_STR)) ecb_flag = 1;
     else cbc_flag = 1;
 
-    if (aes_flag) {
-        if (ecb_flag) algo = aes_ecb;
-        else algo = aes_cbc;
+    if (aes16_flag) {
+        if (ecb_flag) algo = aes128_ecb;
+        else algo = aes128_cbc;
+    }
+    else if (aes24_flag) {
+        if (ecb_flag) algo = aes192_ecb;
+        else algo = aes192_cbc;
+    }
+    else if (aes32_flag) {
+        if (ecb_flag) algo = aes256_ecb;
+        else algo = aes256_cbc;
     }
     else if (des_flag) {
         if (ecb_flag) algo = des_ecb;
@@ -78,14 +88,14 @@ static void remove_filename_from_path(char *path) {
 }
 
 static char* get_filename_from_path(char *file_path) {
-	char *pntr;
-	char *last_slash = file_path;
+    char *pntr;
+    char *last_slash = file_path;
 
-	for (pntr = file_path; *pntr; pntr++)
-		if (*pntr == '/')
-			last_slash = pntr;
+    for (pntr = file_path; *pntr; pntr++)
+        if (*pntr == '/')
+            last_slash = pntr;
 
-	return last_slash == file_path ? file_path : last_slash + 1;
+    return last_slash == file_path ? file_path : last_slash + 1;
 }
 
 static int regex_preprocess(char *file_path, char *error_msg) {

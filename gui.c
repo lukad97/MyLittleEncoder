@@ -105,9 +105,11 @@ static char* str_add_space_left(char *s) {
     return s;
 }
 
-static char* convert_key_to_string(Key *key) {
-    static char s[MAX_KEY_ROW_LEN];
-    sprintf(s, KEY_PRINT_FORMAT, key->type, key->mode, key->key_name, (key->key)[0], (key->key)[1], (key->key)[2]);
+static char* convert_key_to_string(Key *key, char *s) {
+    if (!strcmp(key->type, TDES_STR))
+        sprintf(s, KEY_PRINT_FORMAT_TDES, key->type, key->mode, key->key_name, (key->key)[0], (key->key)[1], (key->key)[2]);
+    else
+        sprintf(s, KEY_PRINT_FORMAT_OTHERS, key->type, key->mode, key->key_name, (key->key)[0]);
     return s;
 }
 
@@ -179,12 +181,11 @@ static void repaint_body_keys(ListElement *list_elem, int length, int pad_y, int
     ListElement *curr = list_elem;
     char row[MAX_KEY_ROW_LEN];
 
-    sprintf(row, KEY_PRINT_FORMAT, "Type", "Mode", "Key name", "Key 1", "Key 2", "Key 3");
-    ///mvwaddstr(wbody, pad_y, pad_x, row);
+    sprintf(row, KEY_PRINT_FORMAT_OTHERS, "Type", "Mode", "Key name", "Key(s)");
     error_message(row, 0);
 
     for (i = 0; curr && i < length; i++, curr = curr->next)
-        mvwaddstr(wbody, i + pad_y, pad_x, convert_key_to_string((Key*)curr->info));
+        mvwaddstr(wbody, i + pad_y, pad_x, convert_key_to_string((Key*)curr->info, row));
 
     touchwin(wbody);
     wrefresh(wbody);
@@ -447,6 +448,7 @@ Key* select_key(List *list) {
     ListElement *curr = list->head, *old = NULL;
     bool stop = FALSE;
     int rewrite_old_flag = 1;
+    char key_str[MAX_KEY_ROW_LEN];
 
     if (!list->head) {
         error_message("No keys in the list!", 1);
@@ -461,10 +463,10 @@ Key* select_key(List *list) {
     while (!stop && !quit) {
         if (curr_selection != old_selection) {
             if (old_selection != -1 && rewrite_old_flag)
-                mvwaddstr(wbody, (old_selection - 1) % (BH - 1) + 1, 2, convert_key_to_string((Key*)old->info));
+                mvwaddstr(wbody, (old_selection - 1) % (BH - 1) + 1, 2, convert_key_to_string((Key*)old->info, key_str));
 
             set_color(wbody, BODYREVCOLOR);
-            mvwaddstr(wbody, (curr_selection - 1) % (BH - 1) + 1, 2, convert_key_to_string((Key*)curr->info));
+            mvwaddstr(wbody, (curr_selection - 1) % (BH - 1) + 1, 2, convert_key_to_string((Key*)curr->info, key_str));
             set_color(wbody, BODYCOLOR);
 
             old_selection = curr_selection;
@@ -615,7 +617,6 @@ void do_menu(Menu *mp) {
 
 void start_menu(Menu *mp, char *title) {
     initscr();
-    resize_term(LINES, COLS + 12);
     init_colors();
     in_curses = TRUE;
 
@@ -908,8 +909,6 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
     int curr = *curr_selection, old = *old_selection;
     bool stop = FALSE;
     char names[n_lines][MAX_STR_LEN];
-    struct dirent *entry;
-    int i;
     char message[MAX_STR_LEN] = "Current path: ";
     int base_message_len = strlen(message);
 

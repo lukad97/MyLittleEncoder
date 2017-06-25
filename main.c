@@ -86,7 +86,7 @@ void menu0_add_key() {
     char *field_descriptions[7];
     char *buf[6];
     char error_msg[MAX_STR_LEN];
-    int sizes[6] = {5, 5, 16, 17, 17, 17};
+    int sizes[6] = {6, 4, 16, 33, 8, 8};
     Key *key = (Key*) malloc(sizeof(Key));
 
     buf[0] = key->type;
@@ -109,36 +109,27 @@ void menu0_add_key() {
     //strcpy(buf[4], "Only for 3DES");
     //strcpy(buf[5], "Only for 3DES");
 
-    /* DEBUG
-    FILE *f = fopen("DEBUG.txt", "a");
-    fprintf(f, "lala\n");
-    if (get_input(field_descriptions, buf, sizes) == KEY_ESC)
-        fprintf(f, "prccc\n");
-    else
-        fprintf(f, "%s:%s:%s:%s:%s:%s\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-    fclose(f);
-    */
     if (get_input(field_descriptions, buf, sizes) == KEY_ESC)
         error_message("No key inputed!", 1);
     else if (check_correct_key(key, error_msg))
         error_message(error_msg, 1);
     else {
+        char msg[MAX_KEY_ROW_LEN] = "Added key: ";
+        error_message(strcat(msg, key->key_name), 0);
+
         add_key(key_list, key);
-        if (!active_key)
-            active_key = key;
+        //if (!active_key)
+        //    active_key = key;
     }
 }
 
 void menu0_read_keys() {
-    if (read_keys(KEYS_FILE, &key_list)) {
+    if (read_keys(KEYS_FILE, &key_list))
         error_message("Unable to open file with keys! Keys not read...", 1);
-        active_key = NULL;
-    }
-    else {
-        active_key = key_list->head ? (Key*)key_list->head->info : NULL;
-        if (!active_key)
-            error_message("File with keys is empty!", 1);
-    }
+    else if (!key_list->head)
+        error_message("File with keys is empty!", 1);
+
+    active_key = NULL;
 }
 
 void menu0_save_keys() {
@@ -169,7 +160,9 @@ void remove_key_option() {
         error_message(strcat(msg, key->key_name), 0);
         remove_key(key_list, key);
 
-        active_key = key_list->head ? (Key*)key_list->head->info : NULL;
+        if (flag) /// MOZDA DA GA STAVIM NA NULL SVAKAKO
+            //active_key = key_list->head ? (Key*)key_list->head->info : NULL;
+            active_key = NULL;
     }
 }
 
@@ -312,8 +305,9 @@ int main(int argc, char *argv[]) {
     /// initialization
     key_list = init_list();
     read_keys(KEYS_FILE, &key_list);
-    if (key_list->head)
-        active_key = (Key*)key_list->head->info;
+    //if (key_list->head)
+    //    active_key = (Key*)key_list->head->info;
+    active_key = NULL;
 
     /// MAIN WORK
     if (argc == 1) /// gui
