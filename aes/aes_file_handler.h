@@ -4,7 +4,9 @@
 #include <stdint.h>
 #include "../global.h"
 
-int aesEncryptFileECB(char *name, uc* key);
-int aesDecryptFileECB(char *name, uc* key);
+typedef enum {EBC, CBC} modeOfOperation;
+
+int aesEncryptFile(char *name, uc* key, int Nk, modeOfOperation mode);
+int aesDecryptFile(char *name, uc* key, int Nk, modeOfOperation mode);
 
 #endif // _AES_FILE_HANDLER_R

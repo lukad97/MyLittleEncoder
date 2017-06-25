@@ -3,34 +3,11 @@
 #include <string.h>
 #include "aes.h"
 
-#ifdef TEST_DEF
-
-void printKey(uc *key, int length) {
-    int i, j;
-    for (i = 0; i < length; ++i) {
-        printf("w(%d): ", i);
-        for (j = 0; j < 4; ++j) {
-            printf("%x%x", key[i*4+j] >> 4, key[i*4+j] & 0x0f);
-        }
-        printf("\n");
-    }
-}
-
-void printBlock(uc *block) {
-    int i, j;
-    printf("Print block:\n");
-    for (i = 0; i < 4; ++i) {
-        for (j = 0; j < 4; ++j) {
-            printf("%x%x ", block[i*4+j] >> 4, block[i*4+j] & 0x0f);
-        }
-        printf("\n");
-    }
-}
-#endif // TEST_DEF
+#define Nb 4
 
 // --------------- KEY OPERATION ------------------------
 
-uc Sbox[256] =   {
+uc Sbox[256] =  {
 //0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
 0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76, // 0
 0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0, // 1
@@ -50,8 +27,7 @@ uc Sbox[256] =   {
 0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16  // F
 };
 
-uc rSbox[256] =
-{
+uc rSbox[256] = {
 //0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
 0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb, // 0
 0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb, // 1
@@ -100,46 +76,59 @@ uc getrSbox(uc element) {
 }
 
 uc getRcon(int rowNum) {
-    return Rcon[(rowNum)/4];
+    return Rcon[rowNum];
 }
 
-void transformRow(uc *row, int rowNum, uc *transformedRow) {
-    transformedRow[0] = getSbox(row[1]) ^ getRcon(rowNum);
+void transformRow(uc *row, int rowNum, uc *transformedRow, int Nk) {
+    transformedRow[0] = getSbox(row[1]) ^ getRcon(rowNum/Nk);
     transformedRow[1] = getSbox(row[2]);
     transformedRow[2] = getSbox(row[3]);
     transformedRow[3] = getSbox(row[0]);
 }
 
-void expandKey(uc *key, uc *expandedKey) {
-    for (int j = 0; j < 4; ++j) {
-        for (int i = 0; i < 4; ++i) {
+void expandKey(uc *key, uc *expandedKey, int Nk) {
+    int Nr = Nk + 6; // number of rounds
+    for (int i = 0; i < Nk; ++i) {
+        for (int j = 0; j < 4; ++j) {
             expandedKey[i*4 + j] = key[i*4 + j];
         }
     }
-    for (int i = 4; i < 44; ++i) {
-        if (i % 4 == 0) {
+    for (int i = Nk; i < 4*(Nr+1); ++i) {
+        uc tempRow[4];
+        for (int j = 0; j < 4; ++j) {
+            tempRow[j] = expandedKey[(i-1)*4 + j];
+        }
+        if (i % Nk == 0) {
             uc *row = expandedKey + (i - 1)*4;
-            uc transformedRow[4];
-            transformRow(row, i, transformedRow);
+            transformRow(row, i, tempRow, Nk);
+        } else if (Nk > 6 && i % Nk == 4) {
             for (int j = 0; j < 4; ++j) {
-                expandedKey[i*4 + j] = expandedKey[(i-4)*4 + j] ^ transformedRow[j];
+                tempRow[j] = getSbox(tempRow[j]);
             }
-        } else {
-            for (int j = 0; j < 4; ++j) {
-                expandedKey[i*4 + j] = expandedKey[(i-4)*4 + j] ^ expandedKey[(i-1)*4 + j];
-            }
+        }
+        for (int j = 0; j < 4; ++j) {
+            expandedKey[i*4 + j] = expandedKey[(i-Nk)*4 + j] ^ tempRow[j];
         }
     }
 }
 
-void getRoundKeys(uc *key, uc roundKeys[11][16]) {
-    uc expandedKey[176];
-    expandKey(key, expandedKey);
-    for (int k = 0; k < 11; ++k) {
+void invMixColumn(uc *state);
+
+void getRoundKeys(uc *key, uc roundKeys[][BLOCK_SIZE], int Nk, keyExpandMode inverse) {
+    int Nr = Nk + 6;
+    uc expandedKey[(Nr+1)*BLOCK_SIZE];
+    expandKey(key, expandedKey, Nk);
+    for (int k = 0; k < Nr+1; ++k) {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                roundKeys[k][4*j+i] = expandedKey[k*16+4*i+j];
+                roundKeys[k][4*j+i] = expandedKey[k*BLOCK_SIZE+4*i+j];
             }
+        }
+    }
+
+    if (inverse) {
+        for (int k = 1; k < Nr; ++k) {
+            invMixColumn(roundKeys[k]);
         }
     }
 }
@@ -147,7 +136,7 @@ void getRoundKeys(uc *key, uc roundKeys[11][16]) {
 // -------------- ENCRYPTION ---------------------
 
 void byteSub(uc *state) {
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 0; i < BLOCK_SIZE; ++i) {
         state[i] = getSbox(state[i]);
     }
 }
@@ -199,7 +188,7 @@ void mixColumn(uc *state) {
 }
 
 void addRoundKey(uc *state, uc *roundKey) {
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 0; i < BLOCK_SIZE; ++i) {
         state[i] ^= roundKey[i];
     }
 }
@@ -211,25 +200,26 @@ void applyRound(uc *state, uc *roundKey) {
     addRoundKey(state, roundKey);
 }
 
-void encryptBlockRoundKeys(uc *state, uc roundKeys[11][16]) {
+void encryptBlockRoundKeys(uc *state, uc roundKeys[][BLOCK_SIZE], int Nr) {
     addRoundKey(state, roundKeys[0]);
-    for (int i = 1; i <= 9; ++i)
+    for (int i = 1; i < Nr; ++i)
         applyRound(state, roundKeys[i]);
     byteSub(state);
     shiftRow(state);
-    addRoundKey(state, roundKeys[10]);
+    addRoundKey(state, roundKeys[Nr]);
 }
 
-void encryptBlock(uc *state, uc *key) {
-    uc roundKeys[11][16];
-    getRoundKeys(key, roundKeys);
-    encryptBlockRoundKeys(state, roundKeys);
+void encryptBlock(uc *state, uc *key, int Nk) {
+    int Nr = Nk + 6;
+    uc roundKeys[Nr+1][BLOCK_SIZE];
+    getRoundKeys(key, roundKeys, Nk, REGULAR);
+    encryptBlockRoundKeys(state, roundKeys, Nr);
 }
 
 // -------------- DECRYPTION ---------------------
 
 void invByteSub(uc *state) {
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 0; i < BLOCK_SIZE; ++i) {
         state[i] = getrSbox(state[i]);
     }
 }
@@ -266,23 +256,8 @@ void invMixColumn(uc *state) {
     }
 }
 
-void getInvRoundKeys(uc *key, uc invRoundKeys[11][16]) {
-    uc expandedKey[176];
-    expandKey(key, expandedKey);
-    for (int k = 0; k < 11; ++k) {
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                invRoundKeys[k][4*j+i] = expandedKey[k*16+4*i+j];
-            }
-        }
-    }
-    for (int k = 1; k < 10; ++k) {
-        invMixColumn(invRoundKeys[k]);
-    }
-}
-
 void invAddRoundKey(uc *state, uc *roundKey) {
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 0; i < BLOCK_SIZE; ++i) {
         state[i] ^= roundKey[i];
     }
 }
@@ -294,31 +269,55 @@ void applyInvRound(uc *state, uc *roundKey) {
     invShiftRow(state);
 }
 
-void decryptBlockRoundKeys(uc *state, uc invRoundKeys[11][16]) {
-    addRoundKey(state, invRoundKeys[10]);
+void decryptBlockRoundKeys(uc *state, uc invRoundKeys[][BLOCK_SIZE], int Nr) {
+    addRoundKey(state, invRoundKeys[Nr]);
     invByteSub(state);
     invShiftRow(state);
-    for (int i = 9; i >= 1; --i)
+    for (int i = Nr-1; i >= 1; --i)
         applyInvRound(state, invRoundKeys[i]);
     addRoundKey(state, invRoundKeys[0]);
 }
 
-void decryptBlock(uc *state, uc *key) {
-    uc invRoundKeys[11][16];
-    getInvRoundKeys(key, invRoundKeys);
-    decryptBlockRoundKeys(state, invRoundKeys);
+void decryptBlock(uc *state, uc *key, int Nk) {
+    int Nr = Nk + 6;
+    uc invRoundKeys[Nr+1][BLOCK_SIZE];
+    getRoundKeys(key, invRoundKeys, Nk, INVERSE);
+    decryptBlockRoundKeys(state, invRoundKeys, Nr);
 }
 
-
 #ifdef TEST_DEF
+
+void printKey(uc *key, int length) {
+    int i, j;
+    for (i = 0; i < length; ++i) {
+        printf("w(%d): ", i);
+        for (j = 0; j < 4; ++j) {
+            printf("%x%x", key[i*4+j] >> 4, key[i*4+j] & 0x0f);
+        }
+        printf("\n");
+    }
+}
+
+void printBlock(uc *block) {
+    int i, j;
+    printf("Print block:\n");
+    for (i = 0; i < 4; ++i) {
+        for (j = 0; j < 4; ++j) {
+            printf("%x%x ", block[i*4+j] >> 4, block[i*4+j] & 0x0f);
+        }
+        printf("\n");
+    }
+}
+
 void test1() {
     uc key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
     uc state[] = {0x32, 0x88, 0x31, 0xe0, 0x43, 0x5a, 0x31, 0x37, 0xf6, 0x30, 0x98, 0x07, 0xa8, 0x8d, 0xa2, 0x34};
 
-    encryptBlock(state, key);
+    encryptBlock(state, key, 4);
     printBlock(state);
 
-    decryptBlock(state, key);
+    decryptBlock(state, key, 4);
     printBlock(state);
 }
+
 #endif // TEST_DEF

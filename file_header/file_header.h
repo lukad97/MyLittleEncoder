@@ -17,7 +17,7 @@ typedef struct
 
 fileheader_t headerCreate(FILE *file, const char *fileName);
 int          headerCheck(FILE *file, fileheader_t *header);
-void headerPrint(fileheader_t *header);
-char* get_filename_from_path(char *file_path);
+void         headerPrint(fileheader_t *header);
+char*        get_filename_from_path(char *file_path);
 
 #endif // _FILE_HEADER_H_
