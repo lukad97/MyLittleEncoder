@@ -18,19 +18,19 @@ int encryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
 		case tdes_cbc:
 			return tdesEncryptFileCBC(name, key1, key2, key3);
 			break;
-        case aes128_ebc:
+        case aes128_ecb:
             return aesEncryptFile(name, key1, 4, EBC);
             break;
         case aes128_cbc:
             return aesEncryptFile(name, key1, 4, CBC);
             break;
-        case aes192_ebc:
+        case aes192_ecb:
             return aesEncryptFile(name, key1, 6, EBC);
             break;
         case aes192_cbc:
             return aesEncryptFile(name, key1, 6, CBC);
             break;
-        case aes256_ebc:
+        case aes256_ecb:
             return aesEncryptFile(name, key1, 8, EBC);
             break;
         case aes256_cbc:
@@ -58,19 +58,19 @@ int decryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
         case tdes_cbc:
             return tdesDecryptFileCBC(name, key1, key2, key3);
             break;
-        case aes128_ebc:
+        case aes128_ecb:
             return aesDecryptFile(name, key1, 4, EBC);
             break;
         case aes128_cbc:
             return aesDecryptFile(name, key1, 4, CBC);
             break;
-        case aes192_ebc:
+        case aes192_ecb:
             return aesDecryptFile(name, key1, 6, EBC);
             break;
         case aes192_cbc:
             return aesDecryptFile(name, key1, 6, CBC);
             break;
-        case aes256_ebc:
+        case aes256_ecb:
             return aesDecryptFile(name, key1, 8, EBC);
             break;
         case aes256_cbc:
