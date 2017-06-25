@@ -279,19 +279,19 @@ void regex_decr() {
 }
 
 void all_keys_decr() {
-    char file_name[MAX_STR_LEN] = {0};
+    char file_path[MAX_STR_LEN] = {0};
     char error_msg[MAX_STR_LEN];
 
     if (!key_list->head)
         error_message("No keys in the list!", 1);
-    else if (!get_one_string_input("File path:", file_name, 60))
+    else if (get_filepath(file_path) == KEY_ESC)
         error_message("File path not inputed!", 1);
     else {
         ListElement *curr;
         Key *key;
 
         for (curr = key_list->head; curr; curr = curr->next)
-            if (!decrypt_file(file_name, (Key*)curr->info, error_msg)) {
+            if (!decrypt_file(file_path, (Key*)curr->info, error_msg)) {
                 sprintf(error_msg, "Matching key found: %s", ((Key*)curr->info)->key_name);
                 error_message(error_msg, 0);
                 break;
