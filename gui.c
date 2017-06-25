@@ -909,8 +909,8 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
     int curr = *curr_selection, old = *old_selection;
     bool stop = FALSE;
     char names[n_lines][MAX_STR_LEN];
-    char message[MAX_STR_LEN] = "Current path: ";
-    int base_message_len = strlen(message);
+    //char message[MAX_STR_LEN] = "Current path: ";
+    //int base_message_len = strlen(message);
 
     /// find entries to show
     int entries_found = find_dir_entries(*dir, curr, n_lines, curr_path, names);
@@ -926,8 +926,9 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
     mvwaddstr(win, 1 + curr % n_lines, 1, names[curr % n_lines]);
     set_color(win, BODYCOLOR);
     wrefresh(win);
-    strcpy(message + base_message_len, curr_path);
-    error_message(message, 0);
+    //strcpy(message + base_message_len, curr_path);
+    //error_message(message, 0);
+    error_message(curr_path, 0);
 
     /// do work
     key = ERR;
@@ -1031,8 +1032,9 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
                 stop = TRUE;
             }
 
-            strcpy(message + base_message_len, curr_path);
-            error_message(message, 0);
+            //strcpy(message + base_message_len, curr_path);
+            //error_message(message, 0);
+            error_message(curr_path, 0);
             break;
         case KEY_ESC:
         case '\t':
