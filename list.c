@@ -1,6 +1,11 @@
+/**
+* @file
+* @author David Milicevic (davidmilicevic97@gmail.com)
+* @brief Funkcije za rad sa dvostruko povezanom ulancanom listom.
+*/
+
 #include "list.h"
 #include <stdlib.h>
-#include <stdio.h>
 
 List* init_list() {
     List *list = (List*) malloc(sizeof(List));

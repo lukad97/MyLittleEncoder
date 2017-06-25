@@ -1,3 +1,10 @@
+/**
+* @file
+* @author David Milicevic (davidmilicevic97@gmail.com)
+* @brief Funkcije za obradu argumenata ukoliko se program pokrece iz komandne linije i izvrsavanje
+* zadatog algoritma enkripcije/dekripcije.
+*/
+
 #include "cmd_line.h"
 #include "process.h"
 #include "list.h"
@@ -6,6 +13,10 @@
 #include <string.h>
 
 /*********************** INTERNAL FUNCTIONS ***********************/
+/**
+* @brief Funkcija za ispisivanje kljuceva na standardnom izlazu.
+* @param[in] key_list Pokazivac na listu trenutno ucitanih kljuceva
+*/
 static void print_keys(List *key_list) {
     ListElement *curr;
     Key *key;
@@ -20,12 +31,23 @@ static void print_keys(List *key_list) {
     }
 }
 
+/**
+* @brief Funkcija za ispis pomocne poruke o argumentima komandne linije.
+* Argumenti se ispisuju na standardnom izlazu.
+*/
 static void print_help() {
     printf("encrypt(.exe) -[e/d[m/r]] key_name file_path\n");
     printf("encrypt(.exe) -b file_path\n");
     printf("encrypt(.exe) -l file_path\n");
 }
 
+/**
+* @brief Funkcija za generisanje argumenata iz zadatog stringa.
+* @param[in] line String koji sadrzi komandu koja odgovara formatu za poziv programa iz komandne linije
+* @param[out] argc Pokazivac na broj u koji treba upisati broj argumenata komandne linije
+* @param[out] argv Niz stringova u koji treba upisati argumente komandne linije (mora imati najmanje 4 stringa)
+* @return 0 ukoliko je broj argumenata manji od 5, 1 u suprotnom (zato sto sve ispravne komande nemaju vise od 4 argumenta)
+*/
 static int parse_line(char *line, int *argc, char *argv[]) {
     char *pntr = strtok(line, ARGS_SEPARATORS);
 
@@ -40,6 +62,16 @@ static int parse_line(char *line, int *argc, char *argv[]) {
     return 0;
 }
 
+/**
+* @brief Funkcija za obradu komande za enkripciju/dekripciju fajlova.
+* @param[in] argc Broj argumenata komandne linije bez naziva programa
+* @param[in] argv Argumenti komandne linije bez naziva programa
+* @param[in] key_list Pokazivac na listu trenutno ucitanih kljuceva
+* @param[in] log_file Pokazivac na fajl u koji treba ispisivati poruke
+* @param[in] print_to_stdout Ukoliko je 0 sve poruke ce biti ispisivane u zadati fajl,
+* u suprotnom ce poruke biti ispisivane na standardnom izlazu, a fajl ce biti koriscen
+* samo u slucaju da se komanda odnosi na enkripciju/dekripciju vise fajlova
+*/
 static void process_ed_command(int argc, char *argv[], List *key_list, FILE *log_file, int print_to_stdout) {
     int encr_flag, more_files_flag = 0, regex_flag = 0;
     char error_msg[MAX_STR_LEN];
@@ -133,6 +165,13 @@ static void process_ed_command(int argc, char *argv[], List *key_list, FILE *log
     }
 }
 
+/**
+* @brief Funkcija za obradu batch komande.
+* @param[in] argc Broj argumenata komandne linije bez naziva programa
+* @param[in] argv Argumenti komandne linije bez naziva programa
+* @param[in] key_list Pokazivac na listu trenutno ucitanih kljuceva
+* @param[in] log_file Pokazivac na fajl u koji treba ispisivati poruke
+*/
 static void process_b_command(int argc, char *argv[], List *key_list, FILE *log_file) {
     FILE *f;
     if (strlen(argv[0]) != 2 || argc != 2) {
@@ -171,6 +210,12 @@ static void process_b_command(int argc, char *argv[], List *key_list, FILE *log_
         printf("Unable to open given file!\n");
 }
 
+/**
+* @brief Funkcija za obradu komande za izlistavanje kljuceva. Kljucevi se izlistavaju samo na standardnom izlazu.
+* @param[in] argc Broj argumenata komandne linije bez naziva programa
+* @param[in] argv Argumenti komandne linije bez naziva programa
+* @param[in] key_list Pokazivac na listu trenutno ucitanih kljuceva
+*/
 static void process_l_command(int argc, char *argv[], List *key_list) {
     if (strlen(argv[0]) != 2 || argc != 1) {
         printf(INVALID_COMMAND_STR);

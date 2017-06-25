@@ -1,0 +1,6 @@
+des:ecb:des_key_1:abcdefg::
+des:cbc:des_key_2:abcdefg::
+aes:ecb:aes_key_1:abcdefghijklmnop::
+aes:cbc:aes_key_2:abcdefghijklmnop::
+3des:ecb:3des_key_1:abcdefg:hijklmn:opqrstu
+3des:cbc:3des_key_2:abcdefg:hijklmn:opqrstu

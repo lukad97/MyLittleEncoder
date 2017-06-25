@@ -1,6 +1,11 @@
+/**
+* @file
+* @author David Milicevic (davidmilicevic97@gmail.com)
+* @brief Funkcije za rad sa kljucevima i njihovu obradu.
+*/
+
 #include "keys.h"
 #include "list.h"
-
 #include <stdio.h>
 #include <string.h>
 

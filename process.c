@@ -1,3 +1,10 @@
+/**
+* @file
+* @author David Milicevic (davidmilicevic97@gmail.com)
+* @brief Funkcije koje se pozivaju prilikom enkripcije ili dekripcije fajlova. Ove funkcije izvrsavaju
+* proveru i obradu zadatih argumenata, a zatim pozivaju funkcije deklarisane u zaglavlju encryption.h.
+*/
+
 #include "process.h"
 #include "keys.h"
 #include "gui.h"
@@ -12,6 +19,11 @@
 #include <regex.h>
 
 /*********************** INTERNAL FUNCTIONS ***********************/
+/**
+* @brief Funkcija za ispitivanje koji algoritam treba koristiti za zadati kljuc.
+* @param[in] key Kljuc za koji treba pronaci algoritam
+* @return Algoritam koji treba koristiti
+*/
 static Algorithm select_algorithm(Key *key) {
     Algorithm algo;
     int aes16_flag = 0, aes24_flag = 0, aes32_flag = 0, des_flag = 0, tdes_flag = 0;
@@ -50,6 +62,10 @@ static Algorithm select_algorithm(Key *key) {
     return algo;
 }
 
+/**
+* @brief Funkcija koja zadati obrazac prevodi u obrazac za koji je moguce pozivati funkcije iz zaglavlja regex.h.
+* @param[in] pattern Obrazac koji treba izmeniti
+*/
 static void build_regexp_string(char *pattern) {
     char *filename_pntr = pattern + strlen(pattern) - 1;
 
@@ -80,6 +96,10 @@ static void build_regexp_string(char *pattern) {
     }
 }
 
+/**
+* @brief Funkcija koja iz putanje uklanja naziv postavljanjem '\0' karaktera na odgovarajuce mesto u stringu.
+* @param[in] path Putanja iz koje treba ukloniti naziv fajla
+*/
 static void remove_filename_from_path(char *path) {
     char *pntr = path + strlen(path) - 1;
     while (pntr >= path && *pntr != '/')
@@ -87,6 +107,11 @@ static void remove_filename_from_path(char *path) {
     *(pntr + 1) = '\0';
 }
 
+/**
+* @brief Funkcija koja u okviru zadate putanje pronalazi mesto na kome pocinje naziv fajla.
+* @param[in] file_path Putanja do fajla
+* @return Pokazivac na karakter gde pocinje naziv fajla
+*/
 static char* get_filename_from_path(char *file_path) {
     char *pntr;
     char *last_slash = file_path;
@@ -98,6 +123,12 @@ static char* get_filename_from_path(char *file_path) {
     return last_slash == file_path ? file_path : last_slash + 1;
 }
 
+/**
+* @brief Funkcija koja vrsi pripremu za enkripciju/dekripciju vise fajlova pomocu regularnog izraza.
+* @param[in] file_path Putanja do fajla koji treba enkriptovati
+* @param[out] error_msg String u koji ce biti upisana poruka o gresci
+* @return 0 ako nije doslo do greske, 1 u suprotnom
+*/
 static int regex_preprocess(char *file_path, char *error_msg) {
     struct re_pattern_buffer pattern_buf;
     char regex_pattern[MAX_STR_LEN];

@@ -1,3 +1,12 @@
+/**
+* @file
+* @author David Milicevic (davidmilicevic97@gmail.com)
+* @brief Glavni fajl. Sadrzi main funkciju u kojoj se proverava da li je program pozvan
+* sa argumentima komandne linije ili bez i na osnovu toga pozivaju odgovarajuce funkcije za
+* rad sa programom. Takodje, sadrzi definicije funkcija koje se pozivaju za njima odgovarajuce
+* odabire opcija iz menija kada je izabran rad sa korisnickim interfejsom.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -70,18 +79,32 @@ static Menu decr_submenu[] =
     {"", (Func)NULL, ""}
 };
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira prve opcije glavnog menija (Keys)
+*/
 void menu0() {
     do_menu(keys_menu);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira druge opcije glavnog menija (Encryption/Decryption)
+*/
 void menu1() {
     do_menu(encrypt_menu);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira trece opcije glavnog menija (Exit)
+*/
 void menu2() {
     finish();
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za dodavanje novog kljuca. Inicijalizuje neophodne
+* promenljive i poziva odgovarajuce funkcije iz zaglavlja gui.h kako bi dobila informacije o kljucu,
+* a zatim dodaje kljuc u listu i postavlja odgovarajucu poruku.
+*/
 void menu0_add_key() {
     char *field_descriptions[7];
     char *buf[6];
@@ -105,9 +128,6 @@ void menu0_add_key() {
     field_descriptions[6] = 0;
 
     buf[0][0] = buf[1][0] = buf[2][0] = buf[3][0] = buf[4][0] = buf[5][0] = '\0';
-    /// Probaj da uspe ovaj default message!
-    //strcpy(buf[4], "Only for 3DES");
-    //strcpy(buf[5], "Only for 3DES");
 
     if (get_input(field_descriptions, buf, sizes) == KEY_ESC)
         error_message("No key inputed!", 1);
@@ -118,11 +138,12 @@ void menu0_add_key() {
         error_message(strcat(msg, key->key_name), 0);
 
         add_key(key_list, key);
-        //if (!active_key)
-        //    active_key = key;
     }
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za citanje kljuceva iz fajla.
+*/
 void menu0_read_keys() {
     if (read_keys(KEYS_FILE, &key_list))
         error_message("Unable to open file with keys! Keys not read...", 1);
@@ -132,11 +153,17 @@ void menu0_read_keys() {
     active_key = NULL;
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za cuvanje kljuceva u fajl.
+*/
 void menu0_save_keys() {
     if (write_keys(key_list, KEYS_FILE))
         error_message("Unable to open file with keys! Keys not written...", 1);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za biranje aktivnog kljuca.
+*/
 void menu0_choose_active() {
     Key *key = select_key(key_list);
     if (key) {
@@ -146,10 +173,17 @@ void menu0_choose_active() {
     }
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za brisanje kljuca/kljuceva. Otvara podmeni
+* u kome moze da se bira da li se brise jedan kljuc ili svi kljucevi.
+*/
 void menu0_remove() {
     do_menu(remove_keys_submenu);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za brisanje jednog kljuca.
+*/
 void remove_key_option() {
     Key *key = select_key(key_list);
 
@@ -160,26 +194,40 @@ void remove_key_option() {
         error_message(strcat(msg, key->key_name), 0);
         remove_key(key_list, key);
 
-        if (flag) /// MOZDA DA GA STAVIM NA NULL SVAKAKO
-            //active_key = key_list->head ? (Key*)key_list->head->info : NULL;
+        if (flag)
             active_key = NULL;
     }
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za brisanje svih kljuceva.
+*/
 void remove_all_keys_option() {
     remove_keys(key_list);
     active_key = NULL;
     error_message("All keys removed!", 0);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za enkripciju. Prikazuje podmeni
+* za odabir nacina unosa fajlova za enkripciju.
+*/
 void show_encr_submenu() {
     do_menu(encr_submenu);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za dekripciju. Prikazuje podmeni
+* za odabir nacina unosa fajlova za dekripciju.
+*/
 void show_decr_submenu() {
     do_menu(decr_submenu);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za enkripciju jednog fajla.
+* Prikazuje odgovarajucu poruku u zavisnosti od uspesnosti izvrsavanja operacije.
+*/
 void one_file_encr() {
     char file_path[MAX_STR_LEN] = {0};
     char error_msg[MAX_STR_LEN];
@@ -194,6 +242,10 @@ void one_file_encr() {
         error_message("File encrypted!", 0);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za enkripciju vise fajlova.
+* Prikazuje odgovarajucu poruku u zavisnosti od uspesnosti izvrsavanja operacije.
+*/
 void more_files_encr() {
     char file_path[MAX_STR_LEN] = {0};
     FILE *log_file = fopen("log.txt", "w");
@@ -211,6 +263,10 @@ void more_files_encr() {
         fclose(log_file);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za enkripciju vise fajlova koriscenjem
+* regularnog izraza. Prikazuje odgovarajucu poruku u zavisnosti od uspesnosti izvrsavanja operacije.
+*/
 void regex_encr() {
     char regex_pattern[MAX_STR_LEN] = {0};
     char error_msg[MAX_STR_LEN];
@@ -229,6 +285,10 @@ void regex_encr() {
         fclose(log_file);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za dekripciju jednog fajla.
+* Prikazuje odgovarajucu poruku u zavisnosti od uspesnosti izvrsavanja operacije.
+*/
 void one_file_decr() {
     char file_path[MAX_STR_LEN] = {0};
     char error_msg[MAX_STR_LEN];
@@ -243,6 +303,10 @@ void one_file_decr() {
         error_message("File decrypted!", 0);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za dekripciju vise fajlova.
+* Prikazuje odgovarajucu poruku u zavisnosti od uspesnosti izvrsavanja operacije.
+*/
 void more_files_decr() {
     char file_path[MAX_STR_LEN] = {0};
     FILE *log_file = fopen("log.txt", "w");
@@ -260,6 +324,10 @@ void more_files_decr() {
         fclose(log_file);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za dekripciju vise fajlova koriscenjem
+* regularnog izraza. Prikazuje odgovarajucu poruku u zavisnosti od uspesnosti izvrsavanja operacije.
+*/
 void regex_decr() {
     char regex_pattern[MAX_STR_LEN] = {0};
     char error_msg[MAX_STR_LEN];
@@ -278,6 +346,11 @@ void regex_decr() {
         fclose(log_file);
 }
 
+/**
+* @brief Funkcija koja se poziva prilikom odabira opcije za pronalazenje kljuca koji je koriscen
+* prilikom enkripcije nekog fajla. Ako je kljuc pronadjen prikazuje poruku sa nazivom kljuca koji je
+* koriscen, u suprotnom prikazuje odgovarajucu poruku da kljuc nije pronadjen.
+*/
 void all_keys_decr() {
     char file_path[MAX_STR_LEN] = {0};
     char error_msg[MAX_STR_LEN];
@@ -301,6 +374,13 @@ void all_keys_decr() {
     }
 }
 
+/**
+* @brief Funkcija koja pozivom odgovarajucih funkcija iz zaglavlja gui.h dobija unos iz jednog polja zadate sirine.
+* @param[in] description String koji sadrzi naziv polja
+* @param[out] buf String u koji treba upisati unetu vrednost
+* @param[in] field_size Sirina polja za unos
+* @return buf ukoliko je unos bio uspesan, NULL u suprotnom
+*/
 static char* get_one_string_input(char *description, char *buf, int field_size) {
     char *field_name[2];
     char *field_buf[1];
@@ -321,7 +401,7 @@ int main(int argc, char *argv[]) {
 
     /// MAIN WORK
     if (argc == 1) /// gui
-        start_menu(main_menu, "Encryption/Decryption SREDI OVAJ TITLE!");
+        start_menu(main_menu, "My Little Encoder");
     else /// cmd line
         process_command(argc, argv, key_list);
 

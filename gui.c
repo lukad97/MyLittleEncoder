@@ -1,3 +1,11 @@
+/**
+* @file
+* @author David Milicevic (davidmilicevic97@gmail.com)
+* @brief Funkcije za rad sa vizuelnim okruzenjem. Definisane su konstatne u delu color_pair indices
+* koje odgovaraju rednim brojevima parova boja i atributima koje treba primeniti za zeljenu boju. Definisane
+* su i konstante koje odredjuju dimenzije delova prozora.
+*/
+
 #include "gui.h"
 #include "list.h"
 #include "keys.h"
@@ -23,13 +31,31 @@
 #define EDITBOXCOLOR        (10 | A_BOLD | A_REVERSE)
 
 /* dimensions */
+/**
+* @brief Visina dela prozora za naslov.
+*/
 #define TH 1
+/**
+* @brief Visina dela prozora za meni.
+*/
 #define MH 1
+/**
+* @brief Visina dela prozora za statusne poruke.
+*/
 #define SH 2
+/**
+* @brief Visina glavnog dela prozora.
+*/
 #define BH (LINES - TH - MH - SH)
+/**
+* @brief Sirina prozora.
+*/
 #define BW COLS
 
 /* macro */
+/**
+* @brief Makro za pronalazenje manjeg od dva elementa.
+*/
 #define min(a,b) (a) < (b) ? (a) : (b)
 
 /************************* PREDEFINITIONS *************************/
@@ -47,6 +73,9 @@ static int key = ERR, ch = ERR;
 static int menux, menuy;
 
 /*********************** INTERNAL FUNCTIONS ***********************/
+/**
+* @brief Interna funkcija za definiciju parova boja koje ce biti koriscene u radu.
+*/
 static void init_colors() {
     start_color();
 
@@ -62,12 +91,25 @@ static void init_colors() {
     init_pair(EDITBOXCOLOR     & ~A_ATTR, COLOR_WHITE, COLOR_BLACK);
 }
 
+/**
+* @brief Interna funkcija koja postavlja atribute prozora.
+* @param[in] win Prozor u kome treba postaviti atribute.
+* @param[in] color Maska atributa koje treba postaviti u datom prozoru. Ukoliko je set-ovan
+* bit A_REVERSE bice ignorisan.
+*/
 static void set_color(WINDOW *win, chtype color) {
     chtype attr = color & A_ATTR;
     attr &= ~A_REVERSE; // ignore reverse
     wattrset(win, COLOR_PAIR(color & A_CHARTEXT) | attr);
 }
 
+/**
+* @brief Interna funkcija koja boji prozor u zadatu boju.
+* @param[in] win Prozor koji treba obojiti.
+* @param[in] color Maska boje i atributa koje treba postaviti u datom prozoru. Ukoliko je set-ovan
+* bit A_REVERSE bice ignorisan.
+* @param[in] has_box Ako je razlicit od 0, bice postavljen okvir prozora.
+*/
 static void color_box(WINDOW *win, chtype color, int has_box) {
     chtype attr = color & A_ATTR;
     set_color(win, color);
@@ -82,6 +124,14 @@ static void color_box(WINDOW *win, chtype color, int has_box) {
     wrefresh(win);
 }
 
+/**
+* @brief Interna funkcija koja formatira zadati string tako sto mu odseca deo sa kraja ukoliko je duzi nego sto je zadato
+* ili ga pomera maksimalno ulevo ukoliko je duzina odgovarajuca.
+* @param[in] s String koji treba formatirati.
+* @param[in] lenght Maksimalna duzina formatiranog stringa.
+* @return Pokazivac na formatirani string. Ne bi trebalo oslobadjati prostor na koji pokazuje ovaj pokazivac,
+* zato sto je string staticki.
+*/
 static char* pad_str_left(char *s, int length) {
     static char buffer[MAX_STR_LEN];
     char format[10];
@@ -92,6 +142,12 @@ static char* pad_str_left(char *s, int length) {
     return buffer;
 }
 
+/**
+* @brief Interna funkcija koja formatira zadati string tako sto mu dodaje jedan space karakter na pocetak. Podrazumeva
+* se da je duzina stringa dovoljna da se u njega moze upisati formatirani string.
+* @param[in] s String koji treba formatirati.
+* @return s
+*/
 static char* str_add_space_left(char *s) {
     int len = strlen(s);
     int i;
@@ -104,6 +160,12 @@ static char* str_add_space_left(char *s) {
     return s;
 }
 
+/**
+* @brief Interna funkcija koja u string ispisuje informacije o kljucu.
+* @param[in] key Kljuc cije informacije treba ispisati.
+* @param[out] s String u koji treba upisati informacije.
+* @return s
+*/
 static char* convert_key_to_string(Key *key, char *s) {
     if (!strcmp(key->type, TDES_STR))
         sprintf(s, KEY_PRINT_FORMAT_TDES, key->type, key->mode, key->key_name, (key->key)[0], (key->key)[1], (key->key)[2]);
@@ -112,11 +174,19 @@ static char* convert_key_to_string(Key *key, char *s) {
     return s;
 }
 
+/**
+* @brief Interna funkcija koja brise liniju u datom prozoru.
+* @param[in] win Prozor u kome treba obrisati liniju.
+* @param[in] line Redni broj linije koju treba obrisati (0-based).
+*/
 static void remove_line(WINDOW *win, int line) {
     mvwaddstr(win, line, 1, pad_str_left(" ", BW - 2));
     wrefresh(win);
 }
 
+/**
+* @brief Interna funkcija koja ispisuje trenutno vreme u gornji desni ugao naslovnog dela prozora.
+*/
 static void idle() {
     char buffer[MAX_STR_LEN];
     time_t t;
@@ -133,6 +203,12 @@ static void idle() {
     wrefresh(wtitle);
 }
 
+/**
+* @brief Interna funkcija koja odredjuje dovoljne dimenzije prozora na kome moze da se prikaze dati meni.
+* @param[in] mp Pokazivac na meni za koji treba odrediti dimenzije.
+* @param[out] lines Pokazivac na broj u koji treba upisati broj linija menija.
+* @param[out] columns Pokazivac na broj u koji treba upisati broj kolona menija.
+*/
 static void menu_dimensions(Menu *mp, int *lines, int *columns) {
     int i, len, max = 0;
 
@@ -144,16 +220,31 @@ static void menu_dimensions(Menu *mp, int *lines, int *columns) {
     *columns = max + 2;
 }
 
+/**
+* @brief Interna funkcija koja postavlja interne promenljive koje odredjuju poziciju trenutnog menija na ekranu.
+* @param[in] y Y koordinata menija.
+* @param[in] x X koordinata menija.
+*/
 static void set_menu_position(int y, int x) {
     menuy = y;
     menux = x;
 }
 
+/**
+* @brief Interna funkcija koja vraca vrednosti internih promenljivih koje odredjuju poziciju trenutnog menija na ekranu.
+* @param[out] y Pokazivac na broj u koji treba upisati Y koordinatu menija.
+* @param[out] x Pokazivac na broj u koji treba upisati X koordinatu menija.
+*/
 static void get_menu_position(int *y, int *x) {
     *y = menuy;
     *x = menux;
 }
 
+/**
+* @brief Interna funkcija za iscrtavanje menija u datom prozoru.
+* @param[in] wmenu Pokazivac na prozor u kome treba iscrtati meni.
+* @param[in] mp Pokazivac na meni koji treba iscrtati.
+*/
 static void repaint_menu(WINDOW *wmenu, Menu *mp) {
     int i;
 
@@ -164,6 +255,11 @@ static void repaint_menu(WINDOW *wmenu, Menu *mp) {
     wrefresh(wmenu);
 }
 
+/**
+* @brief Interna funkcija koja iscrtava glavni deo menija u odgovarajuci deo prozora.
+* @param[in] mp Pokazivac na meni koji treba iscrtati.
+* @param[in] width Sirina jedne opcije glavnog menija.
+*/
 static void repaint_main_menu(Menu *mp, int width) {
     int i;
 
@@ -174,6 +270,13 @@ static void repaint_main_menu(Menu *mp, int width) {
     wrefresh(wmain);
 }
 
+/**
+* @brief Interna funkcija koja ispisuje kljuceve u glavni deo prozora.
+* @param[in] list_elem Pokazivac na element liste koji treba prvo ispisati.
+* @param[in] length Broj elemenata liste koje treba ispisati.
+* @param[in] pad_y Pomeraj po Y-osi za pocetak ispisivanja.
+* @param[in] pad_x Pomeraj po X-osi za pocetak ispisivanja.
+*/
 static void repaint_body_keys(ListElement *list_elem, int length, int pad_y, int pad_x) {
     int i;
     ListElement *curr = list_elem;
@@ -189,6 +292,14 @@ static void repaint_body_keys(ListElement *list_elem, int length, int pad_y, int
     wrefresh(wbody);
 }
 
+/**
+* @brief Interna funkcija koja ispisuje trenutni direktorijum u prozor koji odgovara file explorer-u.
+* @param[in] win Prozor u koji treba ispisivati.
+* @param[in] names Nazivi pojmova koje treba ispisati.
+* @param[in] n_rows Broj redova koje treba ispisati.
+* @param[in] pady Pomeraj po Y-osi za pocetak ispisivanja.
+* @param[in] padx Pomeraj po X-osi za pocetak ispisivanja.
+*/
 static void repaint_file_explorer(WINDOW *win, char names[][MAX_STR_LEN], int n_rows, int pady, int padx) {
     int i;
     for (i = 0; i < n_rows; i++)
@@ -198,6 +309,12 @@ static void repaint_file_explorer(WINDOW *win, char names[][MAX_STR_LEN], int n_
     wrefresh(win);
 }
 
+/**
+* @brief Interna funkcija koja prebrojava koliko pojmova se nalazi u datom direktorijumu.
+* @param[in] dir Pokazivac na direktorijum.
+* @param[in] curr_path Putanja direktorijuma.
+* @return Broj pojmova u direktorijumu.
+*/
 static int count_dir_entries(DIR *dir, char *curr_path) {
     int cnt = 0;
     struct dirent *entry;
@@ -221,6 +338,15 @@ static int count_dir_entries(DIR *dir, char *curr_path) {
     return cnt;
 }
 
+/**
+* @brief Interna funkcija koja pronalazi pojmove u datom direktorijumu.
+* @param[in] dir Pokazivac na direktorijum.
+* @param[in] start_idx Indeks pojma od koga treba poceti trazenje.
+* @param[in] max_entries Najveci broj pojmova koje treba pronaci.
+* @param[in] curr_path Putanja direktorijuma.
+* @param[out] names Niz stringova u koje treba upisati pojmove.
+* @return Broj ucitanih pojmova.
+*/
 static int find_dir_entries(DIR *dir, int start_idx, int max_entries, char *curr_path, char names[][MAX_STR_LEN]) {
     int i;
     struct dirent *entry;
@@ -267,6 +393,11 @@ static int find_dir_entries(DIR *dir, int start_idx, int max_entries, char *curr
     return i;
 }
 
+/**
+* @brief Interna funkcija koja pronalazi trenutnu putanju programa.
+* @param[out] curr_path String bafer u koji treba upisati trenutnu putanju.
+* @param[in] len Duzina bafera.
+*/
 static void find_curr_path(char **curr_path, int len) {
     int bytes = GetModuleFileName(NULL, curr_path, len);
     if (bytes == 0)
@@ -283,6 +414,9 @@ static void find_curr_path(char **curr_path, int len) {
     }
 }
 
+/**
+* @brief Interna funkcija koja ispisuje statusnu poruku za glavni meni.
+*/
 static void main_help() {
 #ifdef ALT_X
     status_message("Use arrow keys and Enter to select (Alt-X to quit)");
@@ -291,6 +425,10 @@ static void main_help() {
 #endif // ALT_X
 }
 
+/**
+* @brief Interna funkcija koja barata radom sa glavnim menijem.
+* @param[in] mp Struktura glavnog menija.
+*/
 static void main_menu(Menu *mp) {
     int n_items, bar_len;
     int old_selection = -1, curr_selection = 0;
@@ -361,6 +499,9 @@ static void main_menu(Menu *mp) {
     wrefresh(wbody);
 }
 
+/**
+* @brief Interna funkcija koja se poziva na kraju rada korisnickog okruzenja da obrise sve prozore i vrati default podesavanja.
+*/
 static void clean() {
     if (in_curses) {
         delwin(wtitle);
