@@ -52,9 +52,9 @@ static void init_colors() {
 
     init_pair(TITLECOLOR       & ~A_ATTR, COLOR_BLACK, COLOR_CYAN);
     init_pair(MAINMENUCOLOR    & ~A_ATTR, COLOR_WHITE, COLOR_CYAN);
-    init_pair(MAINMENUREVCOLOR & ~A_ATTR, COLOR_WHITE, COLOR_BLUE); /// COLOR_WHITE, COLOR_BLACK
+    init_pair(MAINMENUREVCOLOR & ~A_ATTR, COLOR_WHITE, COLOR_BLUE);
     init_pair(SUBMENUCOLOR     & ~A_ATTR, COLOR_WHITE, COLOR_CYAN);
-    init_pair(SUBMENUREVCOLOR  & ~A_ATTR, COLOR_WHITE, COLOR_BLUE); /// COLOR_WHITE, COLOR_BLACK
+    init_pair(SUBMENUREVCOLOR  & ~A_ATTR, COLOR_WHITE, COLOR_BLUE);
     init_pair(BODYCOLOR        & ~A_ATTR, COLOR_WHITE, COLOR_BLUE);
     init_pair(BODYREVCOLOR     & ~A_ATTR, COLOR_WHITE, COLOR_BLACK);
     init_pair(STATUSCOLOR      & ~A_ATTR, COLOR_WHITE, COLOR_CYAN);
@@ -92,7 +92,6 @@ static char* pad_str_left(char *s, int length) {
     return buffer;
 }
 
-/// assumes enough space
 static char* str_add_space_left(char *s) {
     int len = strlen(s);
     int i;
@@ -130,7 +129,6 @@ static void idle() {
     sprintf(buffer, "%.2d-%.2d-%.4d  %.2d:%.2d:%.2d", tp->tm_mday, tp->tm_mon + 1,
             tp->tm_year + 1900, tp->tm_hour, tp->tm_min, tp->tm_sec);
 
-    // mvwaddstr(wtitle, 0, BW - strlen(buffer) - 2, buffer);
     mvwaddstr(wtitle, 0, BW - 22, buffer);
     wrefresh(wtitle);
 }
@@ -332,11 +330,11 @@ static void main_menu(Menu *mp) {
             switch (key) {
             case KEY_LEFT:
                 curr_selection = (curr_selection + n_items - 1) % n_items;
-                key = ERR; /// key = '\n';
+                key = ERR;
                 break;
             case KEY_RIGHT:
                 curr_selection = (curr_selection + 1) % n_items;
-                key = ERR; /// key = '\n';
+                key = ERR;
                 break;
             default:
                 key = ERR;
@@ -570,9 +568,6 @@ void do_menu(Menu *mp) {
 
         switch (key = (key != ERR ? key : wait_for_key())) {
         case '\n':
-            ///touchwin(wbody);
-            ///wrefresh(wbody);
-            ///set_menu_position(y + 1, x + 1);
             set_menu_position(y + curr_selection + 1, x + menu_width);
             remove_error_message();
 
@@ -582,9 +577,6 @@ void do_menu(Menu *mp) {
             curs_set(0);
 
             stop = TRUE;
-            /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            /// da se vrati na pocetak, samo moram da vidim kako da ne brisem error_message
-            /// mislim da je dovoljno da se iskomentarise samo malo nize ~504 red
             repaint_menu(wmenu, mp);
 
             old_selection = -1;
@@ -609,7 +601,6 @@ void do_menu(Menu *mp) {
         }
     }
 
-    ///remove_error_message();
     delwin(wmenu);
     touchwin(wbody);
     wrefresh(wbody);
@@ -676,7 +667,6 @@ int weditstr(WINDOW *win, char *buf, int field) {
     char *buf_pntr = buf;
     bool display_default_message = TRUE, stop = FALSE, insert_mode = FALSE;
     int curry, currx, begy, begx;
-    ///int old_attr;
     WINDOW *wedit;
     int ch = 0;
 
@@ -690,7 +680,6 @@ int weditstr(WINDOW *win, char *buf, int field) {
     getbegyx(win, begy, begx);
 
     wedit = subwin(win, 1, field, begy + curry, begx + currx);
-    ///old_attr = wedit->_attrs;
     color_box(wedit, EDITBOXCOLOR, 0);
 
     keypad(wedit, TRUE);
@@ -758,7 +747,6 @@ int weditstr(WINDOW *win, char *buf, int field) {
     }
 
     curs_set(0);
-    ///wattrset(wedit, old_attr);
     color_box(wedit, INPUTBOXCOLOR, 0);
     repaint_edit_box(wedit, buf_pntr - buf, buf);
     delwin(wedit);
@@ -781,7 +769,6 @@ int get_input(char *description[], char *buf[], int *field) {
             max_field_len = field[n];
     }
 
-    //n_lines = n + 2, n_cols = max_desc_len + field + 4;
     n_lines = n + 2, n_cols = max_desc_len + max_field_len + 4;
     getyx(wbody, oldy, oldx);
     getmaxyx(wbody, maxy, maxx);
@@ -909,14 +896,9 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
     int curr = *curr_selection, old = *old_selection;
     bool stop = FALSE;
     char names[n_lines][MAX_STR_LEN];
-    //char message[MAX_STR_LEN] = "Current path: ";
-    //int base_message_len = strlen(message);
 
     /// find entries to show
     int entries_found = find_dir_entries(*dir, curr, n_lines, curr_path, names);
-//    seekdir(*dir, (curr / n_lines) * n_lines);
-//    for (i = 0; i < n_lines && (entry = readdir(*dir)); i++)
-//        strcpy(names[i], entry->d_name);
 
     /// setup
     curs_set(0);
@@ -926,8 +908,6 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
     mvwaddstr(win, 1 + curr % n_lines, 1, names[curr % n_lines]);
     set_color(win, BODYCOLOR);
     wrefresh(win);
-    //strcpy(message + base_message_len, curr_path);
-    //error_message(message, 0);
     error_message(curr_path, 0);
 
     /// do work
@@ -951,9 +931,6 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
                 curr = *dir_entries - 1;
                 /// find entries to show
                 find_dir_entries(*dir, curr, n_lines, curr_path, names);
-//                seekdir(*dir, (curr / n_lines) * n_lines);
-//                for (i = 0; i < n_lines && (entry = readdir(*dir)); i++)
-//                    strcpy(names[i], entry->d_name);
                 clear_file_explorer_subwin(win);
                 repaint_file_explorer(win, names, *dir_entries % n_lines == 0 ? n_lines : *dir_entries % n_lines, 1, 1);
                 *rewrite_old_flag = 0;
@@ -964,9 +941,6 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
                     clear_file_explorer_subwin(win);
                     /// find entries to show
                     find_dir_entries(*dir, curr, n_lines, curr_path, names);
-//                    seekdir(*dir, (curr / n_lines) * n_lines);
-//                    for (i = 0; i < n_lines && (entry = readdir(*dir)); i++)
-//                        strcpy(names[i], entry->d_name);
                     repaint_file_explorer(win, names, n_lines, 1, 1);
                     *rewrite_old_flag = 0;
                 }
@@ -982,9 +956,6 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
                 clear_file_explorer_subwin(win);
                 /// find entries to show
                 find_dir_entries(*dir, curr, n_lines, curr_path, names);
-//                rewinddir(*dir);
-//                for (i = 0; i < n_lines && (entry = readdir(*dir)); i++)
-//                    strcpy(names[i], entry->d_name);
                 repaint_file_explorer(win, names, *dir_entries < n_lines ? *dir_entries : n_lines, 1, 1);
                 *rewrite_old_flag = 0;
             }
@@ -993,9 +964,6 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
                     clear_file_explorer_subwin(win);
                     /// find entries to show
                     entries_found = find_dir_entries(*dir, curr, n_lines, curr_path, names);
-//                    seekdir(*dir, (curr / n_lines) * n_lines);
-//                    for (i = 0; i < n_lines && (entry = readdir(*dir)); i++)
-//                        strcpy(names[i], entry->d_name);
                     repaint_file_explorer(win, names, entries_found < n_lines ? entries_found : n_lines, 1, 1);
                     *rewrite_old_flag = 0;
                 }
@@ -1032,8 +1000,6 @@ void file_explorer(WINDOW *win, DIR **dir, int *dir_entries, int n_lines, int *c
                 stop = TRUE;
             }
 
-            //strcpy(message + base_message_len, curr_path);
-            //error_message(message, 0);
             error_message(curr_path, 0);
             break;
         case KEY_ESC:
@@ -1053,7 +1019,7 @@ int get_filepath(char *path) {
     bool stop = FALSE;
     int begy, begx;
     int curr_selection = 0, old_selection = -1, rewrite_old_flag = 1;
-    char curr_path[MAX_STR_LEN]; /// da pamtim trenutnu putanju za file explorer
+    char curr_path[MAX_STR_LEN];
     DIR *curr_dir;
     struct dirent *entry;
     int dir_entries;

@@ -20,8 +20,4 @@ int decrypt_more_files(char*, Key*, FILE*);
 int encrypt_regex_files(char*, Key*, char*, FILE*);
 int decrypt_regex_files(char*, Key*, char*, FILE*);
 
-
-char* get_one_string_input(char*, char*, int);
-char** get_multiple_string_input(int, char**, char**, int);
-
 #endif // _PROCESS_H

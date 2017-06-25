@@ -144,8 +144,6 @@ static int regex_preprocess(char *file_path, char *error_msg) {
 }
 
 /*********************** EXTERNAL FUNCTIONS ***********************/
-/// ako je sve okej vrati 0 i error_msg[0] = '\0'
-/// u suprotnom vraca 1 i poruku o gresci u error_msg
 int encrypt_file(char *file_path, Key *key, char *error_msg) {
     Algorithm algo = select_algorithm(key);
     int exit_code = encryptFile(file_path, (key->key)[0], (key->key)[1], (key->key)[2], algo);
@@ -265,16 +263,4 @@ int decrypt_regex_files(char *file_path, Key *key, char *error_msg, FILE *log) {
         return 1;
     }
     return 0;
-}
-
-char* get_one_string_input(char *description, char *buf, int field_size) {
-    char *field_name[2];
-    char *field_buf[1];
-    int f_size[1] = {field_size};
-
-    field_name[0] = description;
-    field_name[1] = 0;
-    field_buf[0] = buf;
-
-    return (get_input(field_name, field_buf, f_size) == KEY_ESC) ? NULL : buf;
 }

@@ -20,9 +20,10 @@ static void print_keys(List *key_list) {
     }
 }
 
-/*** TODO ***/
 static void print_help() {
-    printf("HELP HELP HELP\n");
+    printf("encrypt(.exe) -[e/d[m/r]] key_name file_path\n");
+    printf("encrypt(.exe) -b file_path\n");
+    printf("encrypt(.exe) -l file_path\n");
 }
 
 static int parse_line(char *line, int *argc, char *argv[]) {

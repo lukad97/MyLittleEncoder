@@ -1,4 +1,3 @@
-//#include <curses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,12 +15,13 @@ void remove_key_option(), remove_all_keys_option();
 void show_encr_submenu(), show_decr_submenu();
 void one_file_encr(), more_files_encr(), regex_encr();
 void one_file_decr(), more_files_decr(), regex_decr(), all_keys_decr();
+static char* get_one_string_input(char*, char*, int);
 
 /***************************** STATIC *****************************/
 static List *key_list = NULL;
 static Key *active_key = NULL;
 
-Menu main_menu[] =
+static Menu main_menu[] =
 {
     {"Keys", menu0, "Keys options"},
     {"Encryption/Decryption", menu1, "Choose mode and file"},
@@ -29,7 +29,7 @@ Menu main_menu[] =
     {"", (Func)NULL, ""}
 };
 
-Menu keys_menu[] =
+static Menu keys_menu[] =
 {
     {"Add key", menu0_add_key, "Add new key to the list"},
     {"Read from file", menu0_read_keys, "Read keys from the file"},
@@ -39,21 +39,21 @@ Menu keys_menu[] =
     {"", (Func)NULL, ""}
 };
 
-Menu remove_keys_submenu[] =
+static Menu remove_keys_submenu[] =
 {
     {"Remove key", remove_key_option, "Select key from the list to remove"},
     {"Remove all keys", remove_all_keys_option, "Remove all keys from the list"},
     {"", (Func)NULL, ""}
 };
 
-Menu encrypt_menu[] =
+static Menu encrypt_menu[] =
 {
     {"Encryption", show_encr_submenu, "Choose mode and file to encrypt"},
     {"Decryption", show_decr_submenu, "Choose mode and file to decrypt"},
     {"", (Func)NULL, ""}
 };
 
-Menu encr_submenu[] =
+static Menu encr_submenu[] =
 {
     {"One file", one_file_encr, "Chose one file to encrypt"},
     {"More files", more_files_encr, "Choose more files to encrypt"},
@@ -61,7 +61,7 @@ Menu encr_submenu[] =
     {"", (Func)NULL, ""}
 };
 
-Menu decr_submenu[] =
+static Menu decr_submenu[] =
 {
     {"One file", one_file_decr, "Chose one file to decrypt"},
     {"More files", more_files_decr, "Choose more files to decrypt"},
@@ -301,12 +301,22 @@ void all_keys_decr() {
     }
 }
 
+static char* get_one_string_input(char *description, char *buf, int field_size) {
+    char *field_name[2];
+    char *field_buf[1];
+    int f_size[1] = {field_size};
+
+    field_name[0] = description;
+    field_name[1] = 0;
+    field_buf[0] = buf;
+
+    return (get_input(field_name, field_buf, f_size) == KEY_ESC) ? NULL : buf;
+}
+
 int main(int argc, char *argv[]) {
     /// initialization
     key_list = init_list();
     read_keys(KEYS_FILE, &key_list);
-    //if (key_list->head)
-    //    active_key = (Key*)key_list->head->info;
     active_key = NULL;
 
     /// MAIN WORK
