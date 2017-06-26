@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @author  Kosta Bizetic
+ * @author  Luka Dojcilovic
+ * @brief   Enkripcija/dekripcija fajlova
+ * @details Ovaj fajl sadrzi implementaciju funkcija koje objedinjuju sve algoritme za enkripciju i dekripciju fajlova.
+            Koristi se tako sto funkcijama prosledi enum Algorithm zeljenog algortima.
+ */
+
 #include "encryption.h"
 #include "des/des.h"
 #include "aes/aes_file_handler.h"
@@ -19,19 +28,19 @@ int encryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
 			return tdesEncryptFileCBC(name, key1, key2, key3);
 			break;
         case aes128_ecb:
-            return aesEncryptFile(name, key1, 4, EBC);
+            return aesEncryptFile(name, key1, 4, ECB);
             break;
         case aes128_cbc:
             return aesEncryptFile(name, key1, 4, CBC);
             break;
         case aes192_ecb:
-            return aesEncryptFile(name, key1, 6, EBC);
+            return aesEncryptFile(name, key1, 6, ECB);
             break;
         case aes192_cbc:
             return aesEncryptFile(name, key1, 6, CBC);
             break;
         case aes256_ecb:
-            return aesEncryptFile(name, key1, 8, EBC);
+            return aesEncryptFile(name, key1, 8, ECB);
             break;
         case aes256_cbc:
             return aesEncryptFile(name, key1, 8, CBC);
@@ -59,19 +68,19 @@ int decryptFile(char *name, uc* key1, uc* key2, uc* key3, Algorithm mode)
             return tdesDecryptFileCBC(name, key1, key2, key3);
             break;
         case aes128_ecb:
-            return aesDecryptFile(name, key1, 4, EBC);
+            return aesDecryptFile(name, key1, 4, ECB);
             break;
         case aes128_cbc:
             return aesDecryptFile(name, key1, 4, CBC);
             break;
         case aes192_ecb:
-            return aesDecryptFile(name, key1, 6, EBC);
+            return aesDecryptFile(name, key1, 6, ECB);
             break;
         case aes192_cbc:
             return aesDecryptFile(name, key1, 6, CBC);
             break;
         case aes256_ecb:
-            return aesDecryptFile(name, key1, 8, EBC);
+            return aesDecryptFile(name, key1, 8, ECB);
             break;
         case aes256_cbc:
             return aesDecryptFile(name, key1, 8, CBC);
