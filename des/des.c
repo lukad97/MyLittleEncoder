@@ -534,6 +534,8 @@ int desDecryptFileECB(char *name, uc* key)
 		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
 	}
 
+	header.fileName[255] = '\0';
+
 	fread(output, sizeof(uc), 8, in);
 	desEncodeBlock(output, subKeys, 1, msg);
 	memcpy(&head.byteLength, msg, sizeof(msg));
@@ -685,6 +687,8 @@ int desDecryptFileCBC(char *name, uc* key)
 		desEncodeBlock(output, subKeys, 1, msg);
 		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
 	}
+
+	header.fileName[255] = '\0';
 
 	fread(output, sizeof(uc), 8, in);
 	desEncodeBlock(output, subKeys, 1, msg);
@@ -872,6 +876,8 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
 	}
 
+	header.fileName[255] = '\0';
+
 	fread(output, sizeof(uc), 8, in);
 	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
 	memcpy(&head.byteLength, msg, sizeof(msg));
@@ -1040,6 +1046,8 @@ int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 		tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
 		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
 	}
+
+	header.fileName[255] = '\0';
 
 	fread(output, sizeof(uc), 8, in);
 	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
