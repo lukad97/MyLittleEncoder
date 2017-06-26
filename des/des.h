@@ -1,3 +1,9 @@
+/**
+* @file
+* @author Luka Dojcilovic (l.dojcilovic@gmail.com)
+* @brief Funkcije za enkripciju i dekripciju DES i tDES algoritmima.
+*/
+
 #ifndef _DES_H_
 #define _DES_H_
 
