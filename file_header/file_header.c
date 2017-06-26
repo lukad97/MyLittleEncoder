@@ -1,3 +1,11 @@
+/**
+* @file
+* @author Luka Dojcilovic (l.dojcilovic@gmail.com)
+* @author Kosta Bizetic (kosta.bizetic@gmail.com)
+* @author David Milicevic (davidmilicevic97@gmail.com)
+* @brief Funkcije za rad sa sa hederima fajlova.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
