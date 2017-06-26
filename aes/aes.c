@@ -1,12 +1,18 @@
+/**
+ * @file
+ * @author Kosta Bizetic
+ * @brief AES enkripcija bloka
+ * @details Ovaj fajl sadrzi implementacije funkcija za enkripciju bloka AES algoritmom
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "aes.h"
 
-#define Nb 4
-
 // --------------- KEY OPERATION ------------------------
 
+/** @private */
 uc Sbox[256] =  {
 //0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
 0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76, // 0
@@ -27,6 +33,7 @@ uc Sbox[256] =  {
 0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16  // F
 };
 
+/** @private */
 uc rSbox[256] = {
 //0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
 0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb, // 0
@@ -47,7 +54,8 @@ uc rSbox[256] = {
 0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d  // F
 };
 
-uc Rcon[255] = {
+/** @private */
+uc Rcon[256] = {
 //0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
 0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d, 0x9a, // 0
 0x2f, 0x5e, 0xbc, 0x63, 0xc6, 0x97, 0x35, 0x6a, 0xd4, 0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91, 0x39, // 1
@@ -64,21 +72,43 @@ uc Rcon[255] = {
 0x25, 0x4a, 0x94, 0x33, 0x66, 0xcc, 0x83, 0x1d, 0x3a, 0x74, 0xe8, 0xcb, 0x8d, 0x01, 0x02, 0x04, // C
 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d, 0x9a, 0x2f, 0x5e, 0xbc, 0x63, // D
 0xc6, 0x97, 0x35, 0x6a, 0xd4, 0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91, 0x39, 0x72, 0xe4, 0xd3, 0xbd, // E
-0x61, 0xc2, 0x9f, 0x25, 0x4a, 0x94, 0x33, 0x66, 0xcc, 0x83, 0x1d, 0x3a, 0x74, 0xe8, 0xcb        // F
+0x61, 0xc2, 0x9f, 0x25, 0x4a, 0x94, 0x33, 0x66, 0xcc, 0x83, 0x1d, 0x3a, 0x74, 0xe8, 0xcb, 0x00  // F
 };
 
+/**
+ * @brief     Funkcija za pristup S-BOX-u
+ * @param[in] element   Redni broj elementa kojem se pristupa
+ * @return    Element iz S-BOX-a
+ */
 uc getSbox(uc element) {
     return Sbox[element];
 }
 
+/**
+ * @brief     Funkcija za pristup RS-BOX-u
+ * @param[in] element   Redni broj elementa kojem se pristupa
+ * @return    Element iz RS-BOX-a
+ */
 uc getrSbox(uc element) {
     return rSbox[element];
 }
 
+/**
+ * @brief     Funkcija za izracunavanje round constant-e reda
+ * @param[in] rowNum   Redni broj kluca cija se konstanta trazi
+ * @return    Trazena konstanta
+ */
 uc getRcon(int rowNum) {
     return Rcon[rowNum];
 }
 
+/** @brief Funkcija za transformaciju reda kljuca prilikom ekspanzije
+ *
+ * @param[in]  row              Pokazivac na red kljuca
+ * @param[in]  rowNum           Redni broj reda u okviru bloka
+ * @param[out] transformedRow   Lokacije gde ce transformisati red biti smesten
+ * @param[in]  Nk               Broj 4-bitnih reci u kljucu [4, 6 ili 8]
+ */
 void transformRow(uc *row, int rowNum, uc *transformedRow, int Nk) {
     transformedRow[0] = getSbox(row[1]) ^ getRcon(rowNum/Nk);
     transformedRow[1] = getSbox(row[2]);
@@ -86,6 +116,12 @@ void transformRow(uc *row, int rowNum, uc *transformedRow, int Nk) {
     transformedRow[3] = getSbox(row[0]);
 }
 
+/** @brief Funkcija za ekspanziju kljuca
+ *
+ *  @param[in]  key             Ulazni kljuc
+ *  @param[out] expandedKey     Lokacija gde ce prosireni kljuc biti smesten
+ *  @param[in]  Nk              Broj 4-bitnih reci u kljucu [4, 6 ili 8]
+*/
 void expandKey(uc *key, uc *expandedKey, int Nk) {
     int Nr = Nk + 6; // number of rounds
     for (int i = 0; i < Nk; ++i) {
@@ -112,6 +148,7 @@ void expandKey(uc *key, uc *expandedKey, int Nk) {
     }
 }
 
+/** Funkcija za odradjivanje operacije invMixColumn iz AES standarda */
 void invMixColumn(uc *state);
 
 void getRoundKeys(uc *key, uc roundKeys[][BLOCK_SIZE], int Nk, keyExpandMode inverse) {
@@ -135,12 +172,14 @@ void getRoundKeys(uc *key, uc roundKeys[][BLOCK_SIZE], int Nk, keyExpandMode inv
 
 // -------------- ENCRYPTION ---------------------
 
+/** Funkcija za odradjivanje operacije byteSub iz AES standarda */
 void byteSub(uc *state) {
     for (int i = 0; i < BLOCK_SIZE; ++i) {
         state[i] = getSbox(state[i]);
     }
 }
 
+/** Pomocna funkcija funkcije shiftRow() */
 void shift(uc *row, int numRow) {
     for (int i = 0; i < numRow; ++i) {
         uc temp = row[0];
@@ -151,11 +190,13 @@ void shift(uc *row, int numRow) {
     }
 }
 
+/** Funkcija za odradjivanje operacije shiftRow iz AES standarda */
 void shiftRow(uc *state) {
     for (int i = 0; i < 4; i++)
         shift(state+i*4, i);
 }
 
+/** Funkcija odradjuje operaciju mnozenja nad operandima koji su elementi konacnog polja */
 uc galoisFieldMult(uc a, uc b){
     uc r = 0, xor = 0;
     while(b) {
@@ -170,6 +211,7 @@ uc galoisFieldMult(uc a, uc b){
     return r;
 }
 
+/** Funkcija za odradjivanje operacije mixColumn iz AES standarda */
 void mixColumn(uc *state) {
     uc column[4];
     uc coef[4][4] = { {2, 3, 1, 1},
@@ -187,12 +229,14 @@ void mixColumn(uc *state) {
     }
 }
 
+/** Funkcija za odradjivanje operacije addRoundKey iz AES standarda */
 void addRoundKey(uc *state, uc *roundKey) {
     for (int i = 0; i < BLOCK_SIZE; ++i) {
         state[i] ^= roundKey[i];
     }
 }
 
+/** Funkcija odradjuje jednu rundu enkripcije */
 void applyRound(uc *state, uc *roundKey) {
     byteSub(state);
     shiftRow(state);
@@ -218,12 +262,14 @@ void encryptBlock(uc *state, uc *key, int Nk) {
 
 // -------------- DECRYPTION ---------------------
 
+/** Funkcija za odradjivanje operacije invByteSub iz AES standarda */
 void invByteSub(uc *state) {
     for (int i = 0; i < BLOCK_SIZE; ++i) {
         state[i] = getrSbox(state[i]);
     }
 }
 
+/** Pomocna funkcija funkcije invShiftRow() */
 void invShift(uc *row, int numRow) {
     for (int i = 0; i < numRow; ++i) {
         uc temp = row[3];
@@ -234,6 +280,7 @@ void invShift(uc *row, int numRow) {
     }
 }
 
+/** Funkcija za odradjivanje operacije invShiftRow iz AES standarda */
 void invShiftRow(uc *state) {
     for (int i = 0; i < 4; i++)
         invShift(state+i*4, i);
@@ -256,12 +303,14 @@ void invMixColumn(uc *state) {
     }
 }
 
+/** Funkcija za odradjivanje operacije invAddRoundKey iz AES standarda */
 void invAddRoundKey(uc *state, uc *roundKey) {
     for (int i = 0; i < BLOCK_SIZE; ++i) {
         state[i] ^= roundKey[i];
     }
 }
 
+/** Funkcija odradjuje jednu rundu dekripcije */
 void applyInvRound(uc *state, uc *roundKey) {
     invMixColumn(state);
     invAddRoundKey(state, roundKey);
@@ -287,6 +336,7 @@ void decryptBlock(uc *state, uc *key, int Nk) {
 
 #ifdef TEST_DEF
 
+/** @private */
 void printKey(uc *key, int length) {
     int i, j;
     for (i = 0; i < length; ++i) {
@@ -298,6 +348,7 @@ void printKey(uc *key, int length) {
     }
 }
 
+/** @private */
 void printBlock(uc *block) {
     int i, j;
     printf("Print block:\n");
@@ -309,6 +360,7 @@ void printBlock(uc *block) {
     }
 }
 
+/** @private */
 void test1() {
     uc key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
     uc state[] = {0x32, 0x88, 0x31, 0xe0, 0x43, 0x5a, 0x31, 0x37, 0xf6, 0x30, 0x98, 0x07, 0xa8, 0x8d, 0xa2, 0x34};

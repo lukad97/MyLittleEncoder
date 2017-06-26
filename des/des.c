@@ -1,9 +1,20 @@
+/**
+* @file
+* @author Luka Dojcilovic (l.dojcilovic@gmail.com)
+* @brief Funkcije za enkripciju i dekripciju DES i tDES algoritmima.
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include "des.h"
 #include "../file_header/file_header.h"
 #include "../global.h"
 
+/**
+* @brief Funkcija koja na koja za datih 7 bitova odredjuje koji bit treba da bude 8 tako da bajt ima neparan broj jedinica.
+* @param[in] k Ulazni bajt sa nulom na kraju.
+* @return Bit koji treba dodati da tako da bajt ima neparan broj jedinica.
+*/
 uc bitPairity(uc k)
 {
 	int s = 0, i;
@@ -17,6 +28,11 @@ uc bitPairity(uc k)
 		return 0x01;
 }
 
+/**
+* @brief Funkcija koja od 56-bitnog kljuca pravi 64-bitni ciji svaki bajt ima neparan broj jedinica.
+* @param[in] Ulazni 56-bitni kljuc.
+* @param[out] Izlazni 64-bitni kljuc.
+*/
 void desExpandKey(uc* key, uc *ekey)
 {
 	int i;
@@ -30,6 +46,11 @@ void desExpandKey(uc* key, uc *ekey)
 	}
 }
 
+/**
+* @brief Funkcija koja radi pocetnu DES permutaciju 64-bitnog ulaznog bloka.
+* @param[in] input 64-bitni ulazni blok.
+* @param[out] output Permutovani blok.
+*/
 void IP(uc* input, uc *output)
 {
 	int permutation[] = { 58, 50, 42, 34, 26, 18, 10, 2,
@@ -47,6 +68,11 @@ void IP(uc* input, uc *output)
 		output[i / 8] |= (((0x80 >> ((permutation[i] - 1) % 8)) & input[(permutation[i] - 1) / 8]) << ((permutation[i] - 1) % 8)) >> i % 8;
 }
 
+/**
+* @brief Funkcija koja radi zavrsnu DES permutaciju 64-bitnog ulaznog bloka.
+* @param[in] input 64-bitni ulazni blok.
+* @param[out] output Permutovani blok.
+*/
 void reverseIP(uc* input, uc *output)
 {
 	int permutation[] = { 40,  8, 48, 16, 56, 24, 64, 32,
@@ -65,6 +91,12 @@ void reverseIP(uc* input, uc *output)
 
 }
 
+/**
+* @brief Funkcija koja 56-bitni ulazni blok deli na levih i desnih 28-bita.
+* @param[in] input 56-bitni ulazni blok.
+* @param[out] c Levih 28-bita ulaza.
+* @param[out] d Desnih 28-bita ulaza.
+*/
 void splitKey(uc *input, uc *c, uc *d)
 {
 	int i;
@@ -82,6 +114,12 @@ void splitKey(uc *input, uc *c, uc *d)
 	d[3] = (input[6] & 0x0F) << 4;
 }
 
+/**
+* @brief Funkcija koja 64-bitni ulaz podeli na levih i desnih 32-bita.
+* @param[in] input 64-bitni ulaz.
+* @param[out] L Levih 32-bita ulaza.
+* @param[out] R Desnih 32-bita ulaza.
+*/
 void splitMsg(uc *input, uc *L, uc *R)
 {
 	int i;
@@ -92,6 +130,11 @@ void splitMsg(uc *input, uc *L, uc *R)
 	}
 }
 
+/**
+* @brief Funkcija koja rotira dati 28-bitni ulaz za n mesta.
+* @param[in] input 28-bitni ulaz koji treba rotirati.
+* @param[in] n Broj mesta za koji treba rotirati.
+*/
 void leftRotate(uc *input, int n)
 {
 	int i, j;
@@ -111,6 +154,12 @@ void leftRotate(uc *input, int n)
 	}
 }
 
+
+/**
+* @brief Funkcija koja od jednog 64-bitnog kljuca generise matricu 16 48-bitnih kljuceva.
+* @param[in] key 64-bitni kljuc.
+* @return Matrica 16 48-bitnih kljuceva.
+*/
 uc** keyGenerate(uc* key)
 {
 	uc** subKeys;
@@ -167,6 +216,9 @@ uc** keyGenerate(uc* key)
 	return subKeys;
 }
 
+/**
+* @private
+*/
 void charToBin(uc* input, int n)
 {
 	int i, j;
@@ -182,6 +234,12 @@ void charToBin(uc* input, int n)
 	printf("\n");
 }
 
+
+/**
+* @brief Funkcija koja od 48-bitnog bloka pravi 32-bitni blok po zadatoj DES specifikaciji.
+* @param[in] expandedMsg 48-bitni blok podataka.
+* @param[out] 32-bitni blok podataka.
+*/
 uc *shortenMsg(uc *expandedMsg)
 {
 	int S1[] = { 14,  4, 13,  1,  2, 15, 11,  8,  3, 10,  6, 12,  5,  9,  0,  7,
@@ -291,6 +349,13 @@ uc *shortenMsg(uc *expandedMsg)
 	return shortenedMsg;
 }
 
+
+/*
+* @brief Funkcija koju zahteva DES Feistel network.
+* @param[in] R 32-bitni blok podataka.
+* @param[in] K 48-bitni podkljuc.
+* @param[out] output Rezultujuci 32-bitni blok.
+*/
 void f(uc *R, uc *K, uc *output)
 {
 	int E[] = { 32,  1,  2,  3,  4,  5,
@@ -331,6 +396,10 @@ void f(uc *R, uc *K, uc *output)
 
 }
 
+/**
+* @brief Funkcija za oslobadjanje dinamicke matrice kljuceva dobijene keyGenerate funkcijom.
+* param[in] keys Matrica kljuceva dobijena keyGenerate funkcijom.
+*/
 void freeKeys(uc **keys)
 {
 	int i;
@@ -339,7 +408,14 @@ void freeKeys(uc **keys)
 	free(keys);
 }
 
-
+/**
+* @brief Funkcija za enkripciju/dekripciju jednog 64-bitnog bloka DES algoritmom.
+* @param[in] name 64-bitni blok za enkripciju/dekripciju.
+* @param[in] subKeys Matrica od 16 64-bitnih kljuceva za dekripciju kreiranih keyGenerate funkcijom.
+* @param[in] mode 0 za enkripciju, 1 za dekripciju.
+* @param[out] output 64-bitni rezultujuci blok.
+* @return Greske
+*/
 void desEncodeBlock(uc *input, uc **subKeys, int mode, uc *output)
 {
 	uc R[4], L[4], tempL[4], tempR[4];
@@ -457,6 +533,8 @@ int desDecryptFileECB(char *name, uc* key)
 		desEncodeBlock(output, subKeys, 1, msg);
 		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
 	}
+
+	head.fileName[255] = '\0';
 
 	fread(output, sizeof(uc), 8, in);
 	desEncodeBlock(output, subKeys, 1, msg);
@@ -610,6 +688,8 @@ int desDecryptFileCBC(char *name, uc* key)
 		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
 	}
 
+	head.fileName[255] = '\0';
+
 	fread(output, sizeof(uc), 8, in);
 	desEncodeBlock(output, subKeys, 1, msg);
 	memcpy(&head.byteLength, msg, sizeof(msg));
@@ -673,13 +753,24 @@ int desDecryptFileCBC(char *name, uc* key)
 	return 0;
 }
 
+
+/**
+* @brief Funkcija za enkripciju/dekripciju jednog 64-bitnog bloka tDES algoritmom.
+* @param[in] name 64-bitni blok za enkripciju/dekripciju.
+* @param[in] subKeys1 Matrica od 16 64-bitnih kljuceva za dekripciju kreiranih keyGenerate funkcijom.
+* @param[in] subKeys2 Matrica od 16 64-bitnih kljuceva za dekripciju kreiranih keyGenerate funkcijom.
+* @param[in] subKeys3 Matrica od 16 64-bitnih kljuceva za dekripciju kreiranih keyGenerate funkcijom.
+* @param[in] mode 0 za enkripciju, 1 za dekripciju.
+* @param[out] output 64-bitni rezultujuci blok.
+* @return Greske
+*/
 int tdesEncodeBlock(uc *input, uc **subKeys1, uc **subKeys2, uc **subKeys3, int mode, uc *output)
 {
 	uc **Keys[3] = { subKeys1, subKeys2, subKeys3 };
 	int i, k;
 	for (i = 0; i<3; i++)
 	{
-		if (mode)
+		if (!mode)
 			k = i;
 		else
 			k = 2 - i;
@@ -784,6 +875,8 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 		tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
 		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
 	}
+
+	head.fileName[255] = '\0';
 
 	fread(output, sizeof(uc), 8, in);
 	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
@@ -953,6 +1046,8 @@ int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 		tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);
 		memcpy(head.fileName + 8 * i, msg, 8 * sizeof(uc));
 	}
+
+	head.fileName[255] = '\0';
 
 	fread(output, sizeof(uc), 8, in);
 	tdesEncodeBlock(output, subKeys1, subKeys2, subKeys3, 1, msg);

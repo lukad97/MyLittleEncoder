@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @author  Kosta Bizetic
+ * @brief   AES enkripcija fajlova
+ * @details Ovaj fajl sadrzi implementacije funkcija za enkripciju fajla AES algoritmom.
+            Podrzani modovi su ECB i CBC.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,9 +14,7 @@
 #include "aes.h"
 #include "..\file_header\file_header.h"
 
-// -------------- FILE ENCRYPTION ---------------------
-
-int aesEncryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
+int aesEncryptFile(char *filePath, uc* key, int Nk, modeOfOperation mode)
 {
 	FILE *in, *out;
 	fileheader_t header;
@@ -19,16 +25,16 @@ int aesEncryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
     uc roundKeys[Nr+1][BLOCK_SIZE];
     getRoundKeys(key, roundKeys, Nk, REGULAR);
 
-	in = fopen(path, "rb");
+	in = fopen(filePath, "rb");
 	FILE_CHECK(in);
 
-	strcpy(outPath, path);
+	strcpy(outPath, filePath);
 	strcat(outPath, ".dat");
 
 	out = fopen(outPath, "wb");
 	FILE_CHECK(out);
 
-	header = headerCreate(in, get_filename_from_path(path));
+	header = headerCreate(in, get_filename_from_path(filePath));
 
     for (i = 0; i < BLOCK_SIZE; ++i)
         IV[i] = header.IV[i];
@@ -46,7 +52,7 @@ int aesEncryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
         for (; i<BLOCK_SIZE; i++)
             state[i] = 0;
 
-        if (mode == EBC)
+        if (mode == ECB)
         {
             encryptBlockRoundKeys(state, roundKeys, Nr);
         }
@@ -69,7 +75,7 @@ int aesEncryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
 	return 0;
 }
 
-int aesDecryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
+int aesDecryptFile(char *filePath, uc* key, int Nk, modeOfOperation mode)
 {
 	FILE *in, *out;
 	fileheader_t header;
@@ -80,7 +86,7 @@ int aesDecryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
     uc invRoundKeys[Nr+1][BLOCK_SIZE];
     getRoundKeys(key, invRoundKeys, Nk, INVERSE);
 
-	in = fopen(path, "rb");
+	in = fopen(filePath, "rb");
 	FILE_CHECK(in);
 
 	uc *p = (uc*) &header;
@@ -92,7 +98,8 @@ int aesDecryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
 
     uint64_t len = header.byteLength;
 
-    strcpy(outPath, path);
+    header.fileName[255] = '\0';
+    strcpy(outPath, filePath);
     strcpy(get_filename_from_path(outPath), (char*) header.fileName);
 
     out = fopen(outPath, "rb");
@@ -108,7 +115,7 @@ int aesDecryptFile(char *path, uc* key, int Nk, modeOfOperation mode)
 
 	while ((i = fread(state, sizeof(uc), BLOCK_SIZE, in)))
     {
-        if (mode == EBC)
+        if (mode == ECB)
         {
             decryptBlockRoundKeys(state, invRoundKeys, Nr);
         }
