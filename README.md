@@ -1,2 +1,2 @@
 # DES-and-AES-algorithms
-Software for encrypting plaintext via DES.
+Application for file encryption and decryption using DES, Triple DES and AES algorithms.
