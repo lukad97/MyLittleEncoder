@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include "des.h"
 #include "../file_header/file_header.h"
 #include "../global.h"
@@ -462,12 +463,17 @@ int desEncryptFileECB(char *name, uc* key)
 	char outPath[256];
 	uc msg[8], output[8], **subKeys, ekey[8];
 	int i = 0;
+	double len, current = 0;
 
 	desExpandKey(key, ekey);
 	subKeys = keyGenerate(ekey);
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
+
+	fseek(in, 0L, SEEK_END);
+	len = ftell(in);
+	rewind(in);
 
 	strcpy(outPath, name);
 	strcat(outPath, ".dat");
@@ -493,11 +499,14 @@ int desEncryptFileECB(char *name, uc* key)
 	desEncodeBlock(msg, subKeys, 0, output);
 	fwrite(output, sizeof(uc), 8, out);
 
+	set_progress(current/len);
 
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 		desEncodeBlock(msg, subKeys, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
+		current += 8;
+		set_progress(current/len);
 	}
 	if (i)
 	{
@@ -505,6 +514,8 @@ int desEncryptFileECB(char *name, uc* key)
 			msg[i] = 0;
 		desEncodeBlock(msg, subKeys, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
+		current += 8;
+		set_progress(current/len);
 	}
 
 	freeKeys(subKeys);
