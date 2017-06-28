@@ -200,4 +200,11 @@ int get_filepath(char *path);
 */
 #define mvweditpath(w,y,x,s,f) (wmove(w,y,x)==ERR?ERR:weditpath(w,s,f))
 
+/**
+* @brief Funkcija koju treba pozivati u toku enkripcije/dekripcije da se postavi poruka o
+* kolicini trenutno odradjenog posla.
+* @param[in] progress Kolicina trenutno odradjenog posla u procentima.
+*/
+void set_progress(double progress);
+
 #endif // _GUI_H

@@ -544,6 +544,16 @@ void remove_error_message() {
     remove_line(wstatus, 0);
 }
 
+void set_progress(double progress) {
+    char message[MAX_STR_LEN];
+
+    sprintf(message, "%.2lf%% done.", progress);
+
+    idle();
+    remove_error_message();
+    error_message(message, 0);
+}
+
 void clear_body() {
     werase(wbody);
     wmove(wbody, 0, 0);
