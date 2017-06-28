@@ -499,14 +499,14 @@ int desEncryptFileECB(char *name, uc* key)
 	desEncodeBlock(msg, subKeys, 0, output);
 	fwrite(output, sizeof(uc), 8, out);
 
-	set_progress(current/len);
+	set_progress((double)current/len);
 
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 		desEncodeBlock(msg, subKeys, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
 		current += 8;
-		set_progress(current/len);
+		set_progress((double)current/len);
 	}
 	if (i)
 	{
@@ -515,7 +515,7 @@ int desEncryptFileECB(char *name, uc* key)
 		desEncodeBlock(msg, subKeys, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
 		current += 8;
-		set_progress(current/len);
+		set_progress((double)current/len);
 	}
 
 	freeKeys(subKeys);
