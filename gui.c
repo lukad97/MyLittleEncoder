@@ -68,7 +68,7 @@ int wait_for_key();
 /***************************** STATIC *****************************/
 static WINDOW *wtitle, *wmain, *wbody, *wstatus;
 static bool quit = FALSE;
-static bool in_curses = FALSE;
+bool in_curses = FALSE;
 static int key = ERR, ch = ERR;
 static int menux, menuy;
 
@@ -547,11 +547,24 @@ void remove_error_message() {
 void set_progress(double progress) {
     char message[MAX_STR_LEN];
 
-    sprintf(message, "%.2lf%% done.", progress);
-
     idle();
-    remove_error_message();
-    error_message(message, 0);
+
+    mvwaddstr(wstatus, 0, 2, "Progress ");
+#ifdef ACS_VLINE
+    mvwaddch(wstatus, 0, 11, ACS_VLINE);
+    mvwaddch(wstatus, 0, 32, ACS_VLINE);
+#else
+    mvwaddch(wstatus, 0, 11, '|');
+    mvwaddch(wstatus, 0, 32, '|');
+#endif
+
+#ifdef ACS_BLOCK
+    mvwaddch(wstatus, 0, (int)(progress / 0.05) + 12, ACS_BLOCK);
+#else
+    mvwaddch(wstatus, 0, (int)(progress / 0.05) + 12, 'x');
+#endif
+
+    wrefresh(wstatus);
 }
 
 void clear_body() {

@@ -10,6 +10,7 @@
 #include "des.h"
 #include "../file_header/file_header.h"
 #include "../global.h"
+#include "../gui.h"
 
 /**
 * @brief Funkcija koja na koja za datih 7 bitova odredjuje koji bit treba da bude 8 tako da bajt ima neparan broj jedinica.
@@ -579,7 +580,7 @@ int desDecryptFileECB(char *name, uc* key)
 
 	len = head.byteLength;
 
-	set_progress((double)current/len);
+	set_progress((double)current/length);
 
 	while ((fread(msg, sizeof(uc), 8, in)) == 8 )
 	{

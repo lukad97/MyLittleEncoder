@@ -203,7 +203,7 @@ int get_filepath(char *path);
 /**
 * @brief Funkcija koju treba pozivati u toku enkripcije/dekripcije da se postavi poruka o
 * kolicini trenutno odradjenog posla.
-* @param[in] progress Kolicina trenutno odradjenog posla u procentima.
+* @param[in] progress Kolicina trenutno odradjenog posla u intervalu [0, 1].
 */
 void set_progress(double progress);
 

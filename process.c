@@ -18,6 +18,8 @@
 #include <dirent.h>
 #include <regex.h>
 
+extern in_curses;
+
 /*********************** INTERNAL FUNCTIONS ***********************/
 /**
 * @brief Funkcija za ispitivanje koji algoritam treba koristiti za zadati kljuc.
@@ -238,6 +240,9 @@ int encrypt_more_files(char *file_path, Key *key, FILE *log) {
             else {
                 if (log)
                     fprintf(log, "File %s encrypted\n", file);
+
+                /// To clear progress
+                if (in_curses) remove_error_message();
             }
         }
         fclose(f);
@@ -261,6 +266,9 @@ int decrypt_more_files(char *file_path, Key *key, FILE *log) {
             else {
                 if (log)
                     fprintf(log, "File %s decrypted\n", file);
+
+                /// To clear progress
+                if (in_curses) remove_error_message();
             }
         }
         fclose(f);
