@@ -531,12 +531,18 @@ int desDecryptFileECB(char *name, uc* key)
 	uc msg[8], output[8], c, **subKeys, ekey[8];
 	int i = 0;
 	uint64_t len;
+	double length, current = 0;
+
 
 	desExpandKey(key, ekey);
 	subKeys = keyGenerate(ekey);
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
+
+	fseek(in, 0L, SEEK_END);
+	length = ftell(in);
+	rewind(in);
 
 	for (i = 0; i < 32; i++)
 	{
@@ -573,11 +579,15 @@ int desDecryptFileECB(char *name, uc* key)
 
 	len = head.byteLength;
 
+	set_progress((double)current/len);
+
 	while ((fread(msg, sizeof(uc), 8, in)) == 8 )
 	{
 		desEncodeBlock(msg, subKeys, 1, output);
 		fwrite(output, sizeof(uc), (len > 8) ? 8 : len, out);
 		len -= 8;
+		current += 8;
+		set_progress((double)current/length);
 	}
 
 	freeKeys(subKeys);
@@ -604,12 +614,17 @@ int desEncryptFileCBC(char *name, uc* key)
 	fileheader_t head;
 	int i = 0, flag = 0, j;
 	char ekey[8], **subKeys;
+	double len, current = 0;
 
 	desExpandKey(key, ekey);
 	subKeys = keyGenerate(ekey);
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
+
+	fseek(in, 0L, SEEK_END);
+	len = ftell(in);
+	rewind(in);
 
 	strcpy(outPath, name);
 	strcat(outPath, ".dat");
@@ -639,6 +654,7 @@ int desEncryptFileCBC(char *name, uc* key)
 	desEncodeBlock(msg, subKeys, 0, output);
 	fwrite(output, sizeof(uc), 8, out);
 
+	set_progress((double)current/len);
 
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
@@ -653,6 +669,8 @@ int desEncryptFileCBC(char *name, uc* key)
 				msg[j] ^= output[j];
 		desEncodeBlock(msg, subKeys, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
+		current += 8;
+		set_progress((double)current/len);
 	}
 	if (i)
 	{
@@ -669,6 +687,8 @@ int desEncryptFileCBC(char *name, uc* key)
 				msg[j] ^= output[j];
 		desEncodeBlock(msg, subKeys, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
+		current += 8;
+		set_progress((double)current/len);
 	}
 
 	freeKeys(subKeys);
@@ -685,12 +705,17 @@ int desDecryptFileCBC(char *name, uc* key)
 	char **subKeys, ekey[8];
 	int i = 0, flag = 0, j;
 	uint64_t len;
+	double length, current = 0;
 
 	desExpandKey(key, ekey);
 	subKeys = keyGenerate(ekey);
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
+
+	fseek(in, 0L, SEEK_END);
+	length = ftell(in);
+	rewind(in);
 
 	for (i = 0; i < 32; i++)
 	{
@@ -731,6 +756,8 @@ int desDecryptFileCBC(char *name, uc* key)
 
 	len = head.byteLength;
 
+	set_progress((double)current/length);
+
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 		desEncodeBlock(msg, subKeys, 1, output);
@@ -747,6 +774,9 @@ int desDecryptFileCBC(char *name, uc* key)
 		for (i = 0; i<8; i++)
 			prevMsg[i] = msg[i];
 		len -= 8;
+		current += 8;
+		set_progress((double)current/length);
+
 	}
 
 	freeKeys(subKeys);
@@ -799,6 +829,7 @@ int tdesEncryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 	uc msg[8], output[8], c, **subKeys1, **subKeys2, **subKeys3, ekey[8];
 	fileheader_t head;
 	int i = 0;
+	double len, current = 0;
 
 	desExpandKey(key1, ekey);
 	subKeys1 = keyGenerate(ekey);
@@ -811,6 +842,10 @@ int tdesEncryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
+
+	fseek(in, 0L, SEEK_END);
+	len = ftell(in);
+	rewind(in);
 
 	strcpy(outPath, name);
 	strcat(outPath, ".dat");
@@ -836,11 +871,14 @@ int tdesEncryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 	tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 	fwrite(output, sizeof(uc), 8, out);
 
+	set_progress((double)current/len);
 
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
+		current += 8;
+		set_progress((double)current/len);
 	}
 	if (i)
 	{
@@ -848,6 +886,8 @@ int tdesEncryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 			msg[i] = 0;
 		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
+		current += 8;
+		set_progress((double)current/len);
 	}
 
 	freeKeys(subKeys1);
@@ -867,6 +907,7 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 	fileheader_t head;
 	int i = 0;
 	uint64_t len;
+	double length, current = 0;
 
 	desExpandKey(key1, ekey);
 	subKeys1 = keyGenerate(ekey);
@@ -879,6 +920,10 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
+
+	fseek(in, 0L, SEEK_END);
+	length = ftell(in);
+	rewind(in);
 
 	for (i = 0; i < 32; i++)
 	{
@@ -915,11 +960,15 @@ int tdesDecryptFileECB(char *name, uc* key1, uc* key2, uc* key3)
 
 	len = head.byteLength;
 
+	set_progress((double)current/length);
+
 	while ((fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 1, output);
 		fwrite(output, sizeof(uc), (len > 8) ? 8 : len, out);
 		len -= 8;
+		current += 8;
+		set_progress((double)current/length);
 	}
 
 	freeKeys(subKeys1);
@@ -948,6 +997,7 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 	fileheader_t head;
 	uc msg[8], output[8], c, **subKeys1, **subKeys2, **subKeys3, ekey[8];
 	int i, flag = 0, j;
+	double len, current = 0;
 
 	desExpandKey(key1, ekey);
 	subKeys1 = keyGenerate(ekey);
@@ -960,6 +1010,10 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
+
+	fseek(in, 0L, SEEK_END);
+	len = ftell(in);
+	rewind(in);
 
 	strcpy(outPath, name);
 	strcat(outPath, ".dat");
@@ -989,6 +1043,8 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 	tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 	fwrite(output, sizeof(uc), 8, out);
 
+	set_progress((double)current/len);
+
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 		if (!flag)
@@ -1003,6 +1059,8 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
 		i = 0;
+		current += 8;
+		set_progress((double)current/len);
 	}
 	if (i)
 	{
@@ -1019,6 +1077,8 @@ int tdesEncryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 				msg[j] ^= output[j];
 		tdesEncodeBlock(msg, subKeys1, subKeys2, subKeys3, 0, output);
 		fwrite(output, sizeof(uc), 8, out);
+		current += 8;
+		set_progress((double)current/len);
 	}
 
 	freeKeys(subKeys1);
@@ -1038,6 +1098,7 @@ int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 	fileheader_t head;
 	int i = 0, flag = 0, j;
 	uint64_t len;
+	double length, current = 0;
 
 	desExpandKey(key1, ekey);
 	subKeys1 = keyGenerate(ekey);
@@ -1050,6 +1111,10 @@ int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 
 	in = fopen(name, "rb");
 	FILE_CHECK(in);
+
+	fseek(in, 0L, SEEK_END);
+	length = ftell(in);
+	rewind(in);
 
 	for (i = 0; i < 32; i++)
 	{
@@ -1090,6 +1155,8 @@ int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 
 	len = head.byteLength;
 
+	set_progress((double)current/length);
+
 	while ((i = fread(msg, sizeof(uc), 8, in)) == 8)
 	{
 
@@ -1107,6 +1174,8 @@ int tdesDecryptFileCBC(char *name, uc* key1, uc* key2, uc* key3)
 		len -= 8;
 		for (i = 0; i<8; i++)
 			prevMsg[i] = msg[i];
+		current += 8;
+		set_progress((double)current/length);
 	}
 
 
